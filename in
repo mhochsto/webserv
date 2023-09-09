@@ -1,0 +1,46 @@
+In file included from /usr/include/c++/11/ios:44,
+                 from /usr/include/c++/11/ostream:38,
+                 from /usr/include/c++/11/iostream:39,
+                 from Server.hpp:10,
+                 from Server.cpp:2:
+/usr/include/c++/11/bits/basic_ios.h: In copy constructor ‘std::basic_ios<char>::basic_ios(const std::basic_ios<char>&)’:
+/usr/include/c++/11/bits/basic_ios.h:67:11: error: ‘std::ios_base::ios_base(const std::ios_base&)’ is private within this context
+   67 |     class basic_ios : public ios_base
+      |           ^~~~~~~~~
+In file included from /usr/include/c++/11/ios:42,
+                 from /usr/include/c++/11/ostream:38,
+                 from /usr/include/c++/11/iostream:39,
+                 from Server.hpp:10,
+                 from Server.cpp:2:
+/usr/include/c++/11/bits/ios_base.h:885:5: note: declared private here
+  885 |     ios_base(const ios_base&);
+      |     ^~~~~~~~
+In file included from Server.hpp:16,
+                 from Server.cpp:2:
+/usr/include/c++/11/sstream: In copy constructor ‘std::__cxx11::basic_stringstream<char>::basic_stringstream(const std::__cxx11::basic_stringstream<char>&)’:
+/usr/include/c++/11/sstream:979:11: note: synthesized method ‘std::basic_ios<char>::basic_ios(const std::basic_ios<char>&)’ first required here
+  979 |     class basic_stringstream : public basic_iostream<_CharT, _Traits>
+      |           ^~~~~~~~~~~~~~~~~~
+/usr/include/c++/11/sstream: In copy constructor ‘std::__cxx11::basic_stringbuf<char>::basic_stringbuf(const std::__cxx11::basic_stringbuf<char>&)’:
+/usr/include/c++/11/sstream:72:11: error: ‘std::basic_streambuf<_CharT, _Traits>::basic_streambuf(const std::basic_streambuf<_CharT, _Traits>&) [with _CharT = char; _Traits = std::char_traits<char>]’ is private within this context
+   72 |     class basic_stringbuf : public basic_streambuf<_CharT, _Traits>
+      |           ^~~~~~~~~~~~~~~
+In file included from /usr/include/c++/11/ios:43,
+                 from /usr/include/c++/11/ostream:38,
+                 from /usr/include/c++/11/iostream:39,
+                 from Server.hpp:10,
+                 from Server.cpp:2:
+/usr/include/c++/11/streambuf:810:7: note: declared private here
+  810 |       basic_streambuf(const basic_streambuf&);
+      |       ^~~~~~~~~~~~~~~
+In file included from Server.hpp:16,
+                 from Server.cpp:2:
+/usr/include/c++/11/sstream: In copy constructor ‘std::__cxx11::basic_stringstream<char>::basic_stringstream(const std::__cxx11::basic_stringstream<char>&)’:
+/usr/include/c++/11/sstream:979:11: note: synthesized method ‘std::__cxx11::basic_stringbuf<char>::basic_stringbuf(const std::__cxx11::basic_stringbuf<char>&)’ first required here
+  979 |     class basic_stringstream : public basic_iostream<_CharT, _Traits>
+      |           ^~~~~~~~~~~~~~~~~~
+Server.cpp: In member function ‘std::stringstream Server::constructRequest(char*)’:
+Server.cpp:92:24: note: synthesized method ‘std::__cxx11::basic_stringstream<char>::basic_stringstream(const std::__cxx11::basic_stringstream<char>&)’ first required here
+   92 |                 return respose;
+      |                        ^~~~~~~
+make: *** [Makefile:13: Server.o] Error 1
