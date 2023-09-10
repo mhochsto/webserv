@@ -1,6 +1,6 @@
 # include "Response.hpp"
 # include "Request.hpp"
-#include "Error.hpp"
+#include "SYS_ERROR.hpp"
 
 
 Response::Response( const Request& request ){
@@ -27,7 +27,7 @@ void Response::getResponse( const Request& request ){
 	    path = "./website/pages" + path;
 	if (access(path.c_str(), F_OK) == -1){
 	    std::fstream file(FOF_PATH);
-	    if (!file) throw std::runtime_error(ERROR("can't open source file"));
+	    if (!file) throw std::runtime_SYS_ERROR(SYS_ERROR("can't open source file"));
 	    response << file.rdbuf();
         m_response = response.str();
         m_responseSize = response.str().length();
@@ -36,7 +36,7 @@ void Response::getResponse( const Request& request ){
     
 	struct stat statbuf;
 	std::memset(&statbuf, 0 , sizeof(struct stat));
-	if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(ERROR("stat"));
+	if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_SYS_ERROR(SYS_ERROR("stat"));
 	if (!S_ISREG(statbuf.st_mode)){
 		// not a regular file
 		return ;
@@ -48,7 +48,7 @@ void Response::getResponse( const Request& request ){
 
     std::cout << path << std::endl;
 	std::fstream file(path.c_str());
-	if (!file) throw std::runtime_error(ERROR("can't open source file"));
+	if (!file) throw std::runtime_SYS_ERROR(SYS_ERROR("can't open source file"));
 	response << file.rdbuf();
 
     m_response = response.str();

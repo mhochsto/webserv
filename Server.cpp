@@ -14,12 +14,12 @@ Server::Server( void ){
 	m_serverSocket.events = POLLIN | POLLOUT;
 
 	if (m_serverSocket.fd == -1){
-		throw std::runtime_error(ERROR("socket"));
+		throw std::runtime_error(SYS_ERROR("socket"));
 	}
 	int on = 1;
 	if (setsockopt(m_serverSocket.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == -1) {
 		close(m_serverSocket.fd);
-		throw std::runtime_error(ERROR("setsockopt"));
+		throw std::runtime_error(SYS_ERROR("setsockopt"));
 	}
 
 	sockaddr_in serverAddress;
@@ -30,12 +30,12 @@ Server::Server( void ){
 
 	if (bind(m_serverSocket.fd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
 		close(m_serverSocket.fd);
-		throw std::runtime_error(ERROR("bind"));
+		throw std::runtime_error(SYS_ERROR("bind"));
 	}
 
 	if (listen(m_serverSocket.fd, 200)){
 		close(m_serverSocket.fd);
-		throw std::runtime_error(ERROR("listen"));
+		throw std::runtime_error(SYS_ERROR("listen"));
 	}
 	m_sockets.push_back(m_serverSocket);
 }
@@ -43,7 +43,7 @@ Server::Server( void ){
 void Server::run( void ){
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), -1) == -1){
-			throw std::runtime_error(ERROR("poll"));
+			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); i++){
 			if (m_sockets.at(i).fd == m_serverSocket.fd){
