@@ -1,5 +1,8 @@
 
-#include "Server.hpp"
+# include "Server.hpp"
+# include "Request.hpp"
+# include "Response.hpp"
+# include "Error.hpp"
 
 Server::Server( void ){
 
@@ -47,7 +50,7 @@ void Server::run( void ){
 				addConnection();
 			}
 			else{
-				handleRequest(i);
+				respond(i);
 			}
 		}
 	}
@@ -70,88 +73,8 @@ void Server::addConnection( void ){
 
 }
 
-void Server::constructRequest(char buffer[], std::stringstream &response){
-	
-	std::stringstream buf(&buffer[0]);
-	std::stringstream lineStream;
-	std::string line;
-	std::string word;
-	std::vector<std::string> requestLine;
-	std::stringstream respose;
 
-	respose << "";
-	std::getline(buf, line);
-	lineStream << line;
-	do {
-		getline(lineStream, word, ' ');
-		if (std::find(requestLine.begin(), requestLine.end(), word) == requestLine.end())
-			requestLine.push_back(word);
-		else
-			break ;
-	} while(true);
-	if (requestLine.size() != 3){
-		// 400
-		return ;
-	}
-	if (!std::strcmp(requestLine.at(2).c_str(), "HTTP/1.1\r\n")){ //strcmp needed for \r
-		//not HTTP/1.1
-		return ;
-	}
-	/* mit Map ersetzten */
-	std::string validate[] = VALID_REQUESTS;
-	void (Server::*f[])(std::string, std::vector<std::string>, std::stringstream&) = REQUEST_FUNCTIONS;
-	for (unsigned long i = 0; i < validate->size(); i++){
-		if (validate[i] == requestLine.at(REQUEST)){
-			((this->*f[i])(std::string(buffer), requestLine, response));
-			return ;
-		}
-	}
-	return ; // 400?
-
-}
-
-void Server::get(std::string buffer, std::vector<std::string> requestLine, std::stringstream &response){
-
-	response << "HTTP/1.1";
-	if (requestLine.at(PATH) == "/")
-		requestLine.at(PATH) = "/index.html";
-	requestLine.at(PATH) = "./website" + requestLine.at(PATH);
-
-	if (access(requestLine.at(PATH).c_str(), F_OK) == -1){
-		return ; //hier muss die 404 Seite zurückgegeben werden
-	}
-	
-	struct stat statbuf;
-	std::memset(&statbuf, 0 , sizeof(struct stat));
-	if (stat(requestLine.at(PATH).c_str(), &statbuf) == -1) throw std::runtime_error(ERROR("stat"));
-	if (!S_ISREG(statbuf.st_mode)){
-		// not a regular file
-		return ;
-	} 
-	response <<" 200 OK\nContent-Type: text/html\n"; // evtl. anpassen falls es andere files gibt
-	std::stringstream length;
-	length << statbuf.st_size;
-	response << "Content-Length: " << length.str() << "\n\n";
-
-	std::fstream file(requestLine.at(PATH).c_str());
-	if (!file) throw std::runtime_error(ERROR("can't open source file"));
-	response << file.rdbuf();
-	(void)buffer;
-}
-
-void Server::del(std::string buffer, std::vector<std::string> requestLine, std::stringstream &response){
-	(void)buffer;
-	(void)requestLine;
-	(void)response;
-}
-
-void Server::post(std::string buffer, std::vector<std::string> requestLine, std::stringstream &response){
-	(void)buffer;
-	(void)requestLine;
-	(void)response;
-}
-
-void Server::handleRequest ( int clientIndex ){
+void Server::respond( int clientIndex ){
 	int err;
 	char buffer[HTTP_HEADER_LIMIT + m_httpBodyLimit];
 
@@ -163,9 +86,10 @@ void Server::handleRequest ( int clientIndex ){
 	if (err == -1){ //hier muss evtl. errno geprüft werden
 		return ;
 	}
+	Request currRequest(buffer);
+	Response currResponse(currRequest);
+	send(m_sockets.at(clientIndex).fd, currResponse.getResponse(), currResponse.getSize(), 0);
 
-	std::stringstream response;
-	constructRequest(buffer, response);
-	send(m_sockets.at(clientIndex).fd, response.str().c_str(), response.str().length(), 0);
+//	std::stringstream response;
 
 }

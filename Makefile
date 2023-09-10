@@ -5,7 +5,9 @@ CFLAGS := -Wall -Werror -Wextra -std=c++98 -g
 CC := c++
 
 SRC :=	main.cpp		\
-		Server.cpp
+		Server.cpp		\
+		Request.cpp		\
+		Response.cpp	
 
 OBJ := $(SRC:%.cpp=%.o)
 
