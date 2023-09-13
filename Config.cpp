@@ -1,6 +1,28 @@
-#include "Config.hpp"
+# include "Config.hpp"
 # include "Error.hpp"
-# 
+
+Config::Config(std::string configFileName ){
+	std::fstream infile(configFileName.c_str());
+	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
+
+	std::stringstream sstream;
+	sstream << infile.rdbuf();
+	std::string input = sstream.str();
+	infile.close();
+	while (input.find("server") != std::string::npos){
+			addServer(input);
+		try {
+		}
+		catch(std::exception& e){
+			std::cerr << e.what() << std::endl;
+			break ;
+		};
+	}
+
+}
+
+Config::~Config(){}
+
 std::string Config::getBlock( std::string type, std::string& in ){
 	if (in.find(type) == std::string::npos) throw std::runtime_error(CONFIG_ERROR("invalid config file"));
 	
@@ -27,8 +49,8 @@ void Config::addMethodsLocation(std::string line, t_location& location){
 	std::string allowedRequests[] = ALLOWED_REQUESTS;
 
 	do {
-		line = line.substr(line.find_first_not_of(WHITESPACE)); //skip space front
-		std::string request = line.substr(0, line.find_first_of(WHITESPACE)); // get next request
+		line = line.substr(line.find_first_not_of(WHITESPACE));
+		std::string request = line.substr(0, line.find_first_of(WHITESPACE)); 
 		for (int i = 0; i < ALLOWED_REQUESTS_COUNT; i++){
 			if (allowedRequests[i] == request){
 				location.allowed_methods.push_back(request);
@@ -48,7 +70,6 @@ void Config::addAutoindexLocation(std::string line, t_location& location){
 		location.autoIndex = false;
 	}
 	else {
-		std::cout << line << std::endl;
 		throw std::runtime_error(CONFIG_ERROR("invalid autoindex option"));
 	}
 
@@ -99,53 +120,47 @@ std::string Config::getFirstWord(std::string str){
 	return (str.substr(0, str.find_first_of(WHITESPACE)));
 }
 
+
+
 void Config::fillServerStruct(std::string newServer, t_server& serv){
 	std::stringstream sstream(newServer);
 	std::string line;
+	std::map <std::string,funcPtr> funcMap;
+
+	funcMap["listen"] = &Config::addListenServer;
+	funcMap["server_name"] = &Config::addServerNameServer;
+	funcMap["host"] = &Config::addHostServer;
+	funcMap["root"] = &Config::addRootServer;
+	funcMap["index"] = &Config::addIndexServer;
+	funcMap["error_page"] = &Config::addErrorPageServer;
+	funcMap["client_max_body_size"] = &Config::addClientMaxBodySize;
 
 	while (std::getline(sstream, line)){
-		if (line.find_first_not_of(WHITESPACE) == std::string::npos) // skip empty line
+		if (line.find_first_not_of(WHITESPACE) == std::string::npos)
 			continue ;
 		if (line.at(line.length() - 1 ) != ';'){
-			std::cout << line << std::endl;
 				throw std::runtime_error(CONFIG_ERROR("wrong format ';'"));
 		}
+		if (line == ";")
+			continue ;
 		line.resize(line.length() - 1);
 		if (line.find_first_not_of(WHITESPACE) == std::string::npos)
 			break ;
 		line = line.substr(line.find_first_not_of(WHITESPACE));
-		if ( getFirstWord(line) == "listen"){
-			addListenServer(line, serv);
-		}
-		else if (getFirstWord(line) == "server_name"){
-			addServerNameServer(line, serv);
-		}
-		else if (getFirstWord(line) == "host"){
-			addHostServer(line, serv);
-		}
-		else if (getFirstWord(line) == "root"){
-			addRootServer(line, serv);
-		}
-		else if (getFirstWord(line) == "index"){
-			addIndexServer(line, serv);
-		}
-		else if (getFirstWord(line) == "error_page"){
-			//addErrorPageServer(line, serv);
-		}
-		else if (getFirstWord(line) == "client_max_body_size"){
-			addClientMaxBodySize(line, serv);
+		std::cout << "line: "<< line << std::endl;
+		if (funcMap.find(getFirstWord(line)) != funcMap.end()) {
+			(this->*funcMap[getFirstWord(line)])(line, serv);
 		}
 		else{
 			throw std::runtime_error(CONFIG_ERROR("wrong format"));
 		}
 	}
-	exit(1);
-	(void)serv;
 }
+
+
 
 void Config::addServer(std::string& in){
 	std::string newServer = getBlock("server", in);
-	std::string servName =""; //// Name für map
 	t_server serv;
 
 	//init server with default values here;
@@ -162,42 +177,10 @@ void Config::addServer(std::string& in){
 		}
 		addLocation(newLocation, serv);
 	}
-	newServer = newServer.substr(newServer.find('\n') + 1); // skip first line
-	newServer.resize(newServer.length() - 2); //removes ending bracket
+	newServer = newServer.substr(newServer.find('\n') + 1); 
+	newServer.resize(newServer.length() - 1);
 	fillServerStruct(newServer, serv);
-	m_servers[servName] = serv;
-}
-
-Config::Config(std::string configFileName ){
-	std::fstream infile(configFileName.c_str());
-	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
-
-	std::stringstream sstream;
-	sstream << infile.rdbuf();
-	std::string input = sstream.str();
-	infile.close();
-	while (input.find("server") != std::string::npos){
-		try {
-			addServer(input);
-		}
-		catch(std::exception& e){
-			std::cerr << e.what() << std::endl;
-			break ;
-		};
-	}
-
-}
-
-Config::~Config(){}
-
-/* returns value as string */
-std::string Config::validateValueFormat(std::string str){
-	str = str.substr(str.find_first_of(WHITESPACE));
-	str = str.substr(str.find_first_not_of(WHITESPACE));
-	if (str.find_first_of(WHITESPACE) != std::string::npos){
-		throw std::runtime_error(CONFIG_ERROR("wrong formating"));
-	}
-	return (str);
+	m_servers.push_back(serv);
 }
 
 void	Config::addListenServer(std::string line, t_server& serv){
@@ -211,6 +194,17 @@ void	Config::addListenServer(std::string line, t_server& serv){
 	}
 	serv.port = static_cast<int>(dValue);
 }
+
+std::string Config::validateValueFormat(std::string str){
+	str = str.substr(str.find_first_of(WHITESPACE));
+	str = str.substr(str.find_first_not_of(WHITESPACE));
+	if (str.find_first_of(WHITESPACE) != std::string::npos){
+		throw std::runtime_error(CONFIG_ERROR("wrong formating"));
+	}
+	return (str);
+}
+
+
 
 void Config::validateServerName(std::string domain){
 	std::string domainExtensions[] = ALLOWED_DOMAIN_EXTENSIONS;
@@ -295,4 +289,3 @@ void	Config::addErrorPageServer(std::string line, t_server& serv){
 		throw std::runtime_error(CONFIG_ERROR("root not in home directory"));
 	serv.errorPages[exitCode] = fullPath;
 }
-

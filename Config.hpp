@@ -26,10 +26,10 @@
 #define CLIENT_BODY_SIZE_Max 1000000 // = 1MB - https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-body-size-limit/
 
 typedef struct s_location {
-    std::vector<std::string> allowed_methods;
-    bool autoIndex;
-    std::string index;
-    std::string path;
+    std::vector<std::string>    allowed_methods;
+    bool                        autoIndex;
+    std::string                 index;
+    std::string                 path;
 } t_location;
 
 typedef struct s_server {
@@ -46,32 +46,35 @@ typedef struct s_server {
 class Config{
     private:
         std::string             m_configFileContent;
-        std::map<std::string, t_server>   m_servers;
+        std::vector<t_server>   m_servers;
+
+
+        typedef void (Config::*funcPtr)(std::string, t_server&);
     public:
         Config( std::string configFileName );
         ~Config();
-        void addServer(std::string& in);
-        void addLocation(std::string newLocation, t_server& serv);
+        void        addServer(std::string& in);
+        void        addLocation(std::string newLocation, t_server& serv);
         std::string getBlock( std::string type, std::string& in );
-        void fillServerStruct(std::string newServer, t_server& serv);
+        void        fillServerStruct(std::string newServer, t_server& serv);
 
         std::string getFirstWord(std::string str);
         std::string validateValueFormat(std::string str);
         void        validateServerName(std::string domain);
 
-        void addMethodsLocation(std::string line, t_location& location);
-        void addAutoindexLocation(std::string line, t_location& location);
-        void addIndexLocation(std::string line, t_location& location);
+        void        addMethodsLocation(std::string line, t_location& location);
+        void        addAutoindexLocation(std::string line, t_location& location);
+        void        addIndexLocation(std::string line, t_location& location);
 
-        void	addListenServer(std::string line, t_server& serv);
-        void	addServerNameServer(std::string line, t_server& serv);
-        void	addHostServer(std::string line, t_server& serv);
-        void	addClientMaxBodySize(std::string line, t_server& serv);
-        void	addErrorPageServer(std::string line, t_server& serv);
+        void	    addServerNameServer(std::string line, t_server& serv);
+        void	    addHostServer(std::string line, t_server& serv);
+        void	    addClientMaxBodySize(std::string line, t_server& serv);
+        void	    addErrorPageServer(std::string line, t_server& serv);
+        void	    addListenServer(std::string line, t_server& serv);
         
         /* didn't use absolut path since getcwd is forbidden */
-        void	addRootServer(std::string line, t_server& serv);
-        void	addIndexServer(std::string line, t_server& serv);
+        void	    addRootServer(std::string line, t_server& serv);
+        void	    addIndexServer(std::string line, t_server& serv);
 
 };
 
