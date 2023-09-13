@@ -7,7 +7,8 @@ CC := c++
 SRC :=	main.cpp		\
 		Server.cpp		\
 		Request.cpp		\
-		Response.cpp	
+		Response.cpp	\
+		Config.cpp
 
 OBJ := $(SRC:%.cpp=%.o)
 

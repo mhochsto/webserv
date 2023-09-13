@@ -1,7 +1,6 @@
 #include "Request.hpp"
 #include "Error.hpp"
 
-
 Request::Request(std::string rawRequest){
     std::vector<std::string> requestLine;
 	std::stringstream streamRawRequest(rawRequest);

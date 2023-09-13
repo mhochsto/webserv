@@ -1,6 +1,6 @@
 # include "Response.hpp"
 # include "Request.hpp"
-#include "SYS_ERROR.hpp"
+#include "Error.hpp"
 
 
 Response::Response( const Request& request ){
@@ -9,6 +9,8 @@ Response::Response( const Request& request ){
     m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("invalid", &Response::deleteResponse));
+
+//m_responseMap["invalid"] = &Response::deleteResponse;
 
     std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
 
@@ -27,7 +29,7 @@ void Response::getResponse( const Request& request ){
 	    path = "./website/pages" + path;
 	if (access(path.c_str(), F_OK) == -1){
 	    std::fstream file(FOF_PATH);
-	    if (!file) throw std::runtime_SYS_ERROR(SYS_ERROR("can't open source file"));
+	    if (!file) throw std::runtime_error(SYS_ERROR("can't open source file"));
 	    response << file.rdbuf();
         m_response = response.str();
         m_responseSize = response.str().length();
@@ -36,7 +38,7 @@ void Response::getResponse( const Request& request ){
     
 	struct stat statbuf;
 	std::memset(&statbuf, 0 , sizeof(struct stat));
-	if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_SYS_ERROR(SYS_ERROR("stat"));
+	if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
 	if (!S_ISREG(statbuf.st_mode)){
 		// not a regular file
 		return ;
@@ -48,14 +50,12 @@ void Response::getResponse( const Request& request ){
 
     std::cout << path << std::endl;
 	std::fstream file(path.c_str());
-	if (!file) throw std::runtime_SYS_ERROR(SYS_ERROR("can't open source file"));
+	if (!file) throw std::runtime_error(SYS_ERROR("open"));
 	response << file.rdbuf();
 
     m_response = response.str();
     std::cout << m_response;
     m_responseSize = std::atoi(length.str().c_str());
-
-
 }
 void Response::postResponse( const Request& request ){
     (void)request;
