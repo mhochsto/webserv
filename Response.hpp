@@ -11,14 +11,16 @@
 #include <unistd.h> // access()
 #include <sys/stat.h> // stat()
 
+# include "Config.hpp"
+
 class Request;
 
 class Response {
     private:
         std::string m_response;
         int m_responseSize;
-        
-        
+        t_location m_location;
+        t_server m_serv;    
         typedef void (Response::*funcPtr)(const Request&);
         
         std::map<std::string, funcPtr> m_responseMap;
@@ -28,7 +30,7 @@ class Response {
         void invalidResponse( const Request& request );
 
     public:
-        Response( const Request& request );
+        Response( const Request& request, t_server serv, t_location location );
         const char *getResponse( void );
         int  getSize( void );
 

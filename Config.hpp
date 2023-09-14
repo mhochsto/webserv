@@ -11,7 +11,7 @@
 # include <cstring>
 # include <cstdlib>
 # include <set>
-#include <unistd.h> // access
+# include <unistd.h> // access
 
 # define ALLOWED_REQUESTS {"GET", "POST", "DELETE"}
 # define ALLOWED_REQUESTS_COUNT 3
@@ -52,7 +52,9 @@ class Config{
         typedef void (Config::*funcPtr)(std::string, t_server&);
     public:
         Config( std::string configFileName );
+        Config( const Config &cpy);
         ~Config();
+
         void        addServer(std::string& in);
         void        addLocation(std::string newLocation, t_server& serv);
         std::string getBlock( std::string type, std::string& in );
@@ -75,6 +77,10 @@ class Config{
         /* didn't use absolut path since getcwd is forbidden */
         void	    addRootServer(std::string line, t_server& serv);
         void	    addIndexServer(std::string line, t_server& serv);
+
+        std::vector<t_server>   getServerConfig( void );
+
+
 
 };
 

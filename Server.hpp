@@ -17,17 +17,24 @@
 #include <sys/stat.h>
 #include <algorithm>
 # include <numeric>
+
+# include "Config.hpp"
+
+
 # define HTTP_HEADER_LIMIT 8192
-# define REQUEST 0
-# define PATH 1
+# define CLIENT_MAX 200
+
+class Config;
 
 class Server {
 	private:
-		int					m_httpBodyLimit;
-		pollfd 				m_serverSocket;
-		std::vector<pollfd> m_sockets;	
+		pollfd 					m_serverSocket;
+		std::vector<pollfd> 	m_sockets;
+		std::vector<t_server>	m_servers;
+		t_server                m_serv;
+
 	public:
-		Server();
+		Server( Config config );
 		void run( void );
 		void addConnection( void );
 		void respond ( int clientIndex );

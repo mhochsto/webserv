@@ -1,6 +1,14 @@
 # include "Config.hpp"
 # include "Error.hpp"
 
+Config::Config( const Config &cpy){
+	m_configFileContent = cpy.m_configFileContent;
+	m_servers = cpy.m_servers;
+}
+
+std::vector<t_server>   Config::getServerConfig( void ) { return m_servers;}
+
+
 Config::Config(std::string configFileName ){
 	std::fstream infile(configFileName.c_str());
 	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
@@ -147,7 +155,6 @@ void Config::fillServerStruct(std::string newServer, t_server& serv){
 		if (line.find_first_not_of(WHITESPACE) == std::string::npos)
 			break ;
 		line = line.substr(line.find_first_not_of(WHITESPACE));
-		std::cout << "line: "<< line << std::endl;
 		if (funcMap.find(getFirstWord(line)) != funcMap.end()) {
 			(this->*funcMap[getFirstWord(line)])(line, serv);
 		}
@@ -156,8 +163,6 @@ void Config::fillServerStruct(std::string newServer, t_server& serv){
 		}
 	}
 }
-
-
 
 void Config::addServer(std::string& in){
 	std::string newServer = getBlock("server", in);
@@ -260,6 +265,8 @@ void	Config::addRootServer(std::string line, t_server& serv){
 	serv.root = validateValueFormat(line);
 	if (serv.root.at(0) != '.')
 		serv.root = "." + serv.root;
+	if (serv.root.at(serv.root.length() - 1) == '/')
+		serv.root.resize(serv.root.length() - 1);
 	if (access(serv.root.c_str(), F_OK))
 		throw std::runtime_error(CONFIG_ERROR("root not in home directory"));
 }

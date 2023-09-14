@@ -1,28 +1,28 @@
 # include "Response.hpp"
 # include "Request.hpp"
-#include "Error.hpp"
+# include "Error.hpp"
 
 
-Response::Response( const Request& request ){
+Response::Response( const Request& request, t_server serv, t_location location ): m_serv(serv), m_location(location) {
 
     m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("invalid", &Response::deleteResponse));
 
-//m_responseMap["invalid"] = &Response::deleteResponse;
-
     std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
-
     (this->*it->second)(request);
 }
-
 
 void Response::getResponse( const Request& request ){
     std::stringstream response;
     std::string path = request.getPath();
 
+    //std::cout << request.getPath() << std::endl;
 	response << "HTTP/1.1";
+    path = m_serv.root;
+    if (path.at(path.length() - 1) == '/')
+
 	if (path == "/")
 		path = "./website/index.html";
     else
@@ -48,13 +48,11 @@ void Response::getResponse( const Request& request ){
 	length << statbuf.st_size;
 	response << "Content-Length: " << length.str() << "\n\n";
 
-    std::cout << path << std::endl;
 	std::fstream file(path.c_str());
 	if (!file) throw std::runtime_error(SYS_ERROR("open"));
 	response << file.rdbuf();
 
     m_response = response.str();
-    std::cout << m_response;
     m_responseSize = std::atoi(length.str().c_str());
 }
 void Response::postResponse( const Request& request ){
