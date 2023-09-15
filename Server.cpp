@@ -80,6 +80,7 @@ void Server::respond( int clientIndex ){
 	char buffer[HTTP_HEADER_LIMIT + m_serv.clientMaxBodySize];
 
 	err = recv(m_sockets[clientIndex].fd, buffer, sizeof(buffer), 0);
+	std::cout << buffer << std::endl;
 	if (err == 0){ // socket now closed -> erase socket
 		m_sockets.erase(m_sockets.begin() + clientIndex);
 		return ;

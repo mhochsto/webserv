@@ -21,8 +21,6 @@ class Request {
         std::map<std::string, std::string>  m_requestHeader;
         t_server                            m_serv;
 
-        std::string                         closestMatchingLocation( std::map<std::string, t_location> locMap, std::string path );
-        unsigned int                        levenstein( const std::string path, const std::string toMatch );
         std::map<std::string, std::string>  getRequestHeader( void ) const;
     public:
         Request( std::string rawRequest, t_server serv );

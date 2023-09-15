@@ -1,9 +1,9 @@
 # include "Response.hpp"
 # include "Request.hpp"
 # include "Error.hpp"
+#include "utils.hpp"
 
-
-Response::Response( const Request& request, t_server serv, t_location location ): m_serv(serv), m_location(location) {
+Response::Response( const Request& request, t_server serv, t_location location ): m_location(location), m_serv(serv) {
 
     m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
     m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
@@ -14,19 +14,32 @@ Response::Response( const Request& request, t_server serv, t_location location )
     (this->*it->second)(request);
 }
 
+std::string Response::prepPath(std::string requestedPath){
+    std::string path;
+
+    std::cout << path << std::endl;
+    path = "." + (m_serv.root.at(0) == '/' ?  m_serv.root : ("/" + m_serv.root));
+        path.resize(path.length() - 1);
+
+    (void)requestedPath;
+    return path;
+}
+
 void Response::getResponse( const Request& request ){
     std::stringstream response;
-    std::string path = request.getPath();
-
-    //std::cout << request.getPath() << std::endl;
-	response << "HTTP/1.1";
+    std::string path =  prepPath(request.getPath());
+	
+    response << "HTTP/1.1";
     path = m_serv.root;
-    if (path.at(path.length() - 1) == '/')
-
-	if (path == "/")
+    if (path.at(path.length() - 1) == '/'){
+        path.erase(path.length() - 1);
+    }
+	if (path == "/"){
 		path = "./website/index.html";
-    else
+    }
+    else {
 	    path = "./website/pages" + path;
+    }
 	if (access(path.c_str(), F_OK) == -1){
 	    std::fstream file(FOF_PATH);
 	    if (!file) throw std::runtime_error(SYS_ERROR("can't open source file"));
@@ -64,6 +77,7 @@ void Response::deleteResponse( const Request& request ){
 }
 void Response::invalidResponse( const Request& request ){
     (void)request;
+    //return 400
 
 }
 

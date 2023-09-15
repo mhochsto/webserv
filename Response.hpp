@@ -29,6 +29,8 @@ class Response {
         void deleteResponse( const Request& request );
         void invalidResponse( const Request& request );
 
+        std::string prepPath(std::string requestedPath);
+
     public:
         Response( const Request& request, t_server serv, t_location location );
         const char *getResponse( void );

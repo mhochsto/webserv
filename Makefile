@@ -8,7 +8,8 @@ SRC :=	main.cpp		\
 		Server.cpp		\
 		Request.cpp		\
 		Response.cpp	\
-		Config.cpp
+		Config.cpp		\
+		utils.cpp
 
 OBJ := $(SRC:%.cpp=%.o)
 
