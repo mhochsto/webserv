@@ -1,16 +1,27 @@
 import socket
 import subprocess
 import os
-path = './webserv'
+import time
+import threading
 from subprocess import Popen, PIPE
 
-p = subprocess.Popen(path, capture_output=False)
+path = './webserv'
 
+def captureServ(p):
+    out = p.communicate()
+    print('\033[94m')
+    print(out)
 
+p = subprocess.Popen(path, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+t = threading.Thread(target= captureServ, args=(p,))
+t.start()
+time.sleep(0.1)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect(('localhost', 8080))
+sock.connect(('localhost', 7700))
 sock.send(b"GET / HTTP/1.1\r\n")
 response = sock.recv(4096)
-print(response.decode())
-sock.close()
+print("\x1b[31m" + response.decode())
+
 p.kill()
+t.join()
+sock.close()

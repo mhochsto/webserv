@@ -14,32 +14,18 @@ Response::Response( const Request& request, t_server serv, t_location location )
     (this->*it->second)(request);
 }
 
-std::string Response::prepPath(std::string requestedPath){
-    std::string path;
-
-    std::cout << path << std::endl;
-    path = "." + (m_serv.root.at(0) == '/' ?  m_serv.root : ("/" + m_serv.root));
-        path.resize(path.length() - 1);
-
-    (void)requestedPath;
-    return path;
-}
 
 void Response::getResponse( const Request& request ){
     std::stringstream response;
-    std::string path =  prepPath(request.getPath());
+    std::string path = m_serv.root + request.getPath();
 	
+    if (request.getPath() == "/")
+        path += m_serv.index;
+    else if (request.getPath() == m_location.path)
+        path += "/" + m_location.path;
+
+    std::cout << "path -> "<< path << std::endl;
     response << "HTTP/1.1";
-    path = m_serv.root;
-    if (path.at(path.length() - 1) == '/'){
-        path.erase(path.length() - 1);
-    }
-	if (path == "/"){
-		path = "./website/index.html";
-    }
-    else {
-	    path = "./website/pages" + path;
-    }
 	if (access(path.c_str(), F_OK) == -1){
 	    std::fstream file(FOF_PATH);
 	    if (!file) throw std::runtime_error(SYS_ERROR("can't open source file"));

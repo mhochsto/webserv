@@ -22,6 +22,9 @@ $(NAME): $(OBJ)
 	@$(CC) -o $(NAME) $(OBJ) -I.
 	@echo "Done making"
 
+test: $(NAME)
+	python3 client.py
+
 clean:
 	@rm -f $(OBJ)
 

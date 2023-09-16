@@ -86,6 +86,10 @@ void Config::addAutoindexLocation(std::string line, t_location& location){
 void Config::addIndexLocation(std::string line, t_location& location){
 	line = line.substr(line.find("index") + 6);
 	line = line.substr(0, line.find_first_of(WHITESPACE));
+	if (line.at(line.length() - 1) == '/')
+		throw std::runtime_error(CONFIG_ERROR("trailing '/' not allowed for index"));
+	if (line.at(0) == '/')
+		line.erase(0, 1);
 	location.index = line;
 }
 
@@ -98,6 +102,8 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 	line = line.substr(line.find_first_of(WHITESPACE));
 	line = line.substr(line.find_first_not_of(WHITESPACE));
 	line = line.substr(0, line.find_first_of(WHITESPACE));
+	if (line != "/" && line.at(line.length() - 1) == '/')
+		line.resize(line.length() - 1);
 	location.path = line;
 
 	//init location default values here;
