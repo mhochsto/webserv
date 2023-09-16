@@ -31,7 +31,7 @@ class Response {
 
     public:
         Response( const Request& request, t_server serv, t_location location );
-        const char *getResponse( void );
+        const char *returnResponse( void );
         int  getSize( void );
 
 };

@@ -93,7 +93,7 @@ void Server::respond( int clientIndex ){
 
 	try{
 		Response currResponse(currRequest, m_serv, m_serv.locations[currRequest.getLocationName()]);
-		send(m_sockets.at(clientIndex).fd, currResponse.getResponse(), currResponse.getSize(), 0);
+		send(m_sockets.at(clientIndex).fd, currResponse.returnResponse(), currResponse.getSize(), 0);
 	}	
 	catch(const std::exception& e){
 		std::cout << "woopsi\n"; // send(); <-- 400 Bad Request

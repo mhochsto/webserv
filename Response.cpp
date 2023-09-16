@@ -17,14 +17,12 @@ Response::Response( const Request& request, t_server serv, t_location location )
 
 void Response::getResponse( const Request& request ){
     std::stringstream response;
-    std::string path = m_serv.root + request.getPath();
-	
+    std::string path = "." + request.getPath();
+	std::cout << "root:" << request.getPath() << std::endl;
     if (request.getPath() == "/")
-        path += m_serv.index;
+        path = m_serv.root + "/" + m_serv.index;
     else if (request.getPath() == m_location.path)
-        path += "/" + m_location.path;
-
-    std::cout << "path -> "<< path << std::endl;
+        path = "./" + m_location.path + "/" + m_location.index;
     response << "HTTP/1.1";
 	if (access(path.c_str(), F_OK) == -1){
 	    std::fstream file(FOF_PATH);
@@ -39,7 +37,7 @@ void Response::getResponse( const Request& request ){
 	std::memset(&statbuf, 0 , sizeof(struct stat));
 	if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
 	if (!S_ISREG(statbuf.st_mode)){
-		// not a regular file
+    	// not a regular file
 		return ;
 	} 
 	response <<" 200 OK\nContent-Type: text/html\n"; // evtl. anpassen falls es andere files gibt
@@ -67,7 +65,8 @@ void Response::invalidResponse( const Request& request ){
 
 }
 
-const char *Response::getResponse( void ){return (m_response.c_str());}
+const char *Response::returnResponse( void ) {return (m_response.c_str());}
+
 int  Response::getSize( void ){return (m_responseSize);}
 
 

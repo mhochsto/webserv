@@ -104,6 +104,8 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 	line = line.substr(0, line.find_first_of(WHITESPACE));
 	if (line != "/" && line.at(line.length() - 1) == '/')
 		line.resize(line.length() - 1);
+	if (line != "/" && line.at(0) == '/')
+		line.erase(0, 1);
 	location.path = line;
 
 	//init location default values here;
@@ -279,7 +281,7 @@ void	Config::addRootServer(std::string line, t_server& serv){
 
 void	Config::addIndexServer(std::string line, t_server& serv){
 	
-	std::string value = serv.root + validateValueFormat(line);
+	std::string value = validateValueFormat(line);
 	if (access(serv.root.c_str(), F_OK))
 		throw std::runtime_error(CONFIG_ERROR("index doesn't exist"));
 	serv.index = value;
