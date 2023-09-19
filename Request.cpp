@@ -19,12 +19,22 @@ Request::Request(std::string rawRequest, t_server serv): m_serv(serv){
 
     if (requestLine.size() != 3
         || !std::strcmp(requestLine.at(2).c_str(), "HTTP/1.1\r\n")){
-		m_requestType = "invalid";
+		m_requestType = "BadRequest";
 		    return ;
 	}
     m_requestType = requestLine.at(0);
     m_requestPath = requestLine.at(1);
     m_requestHttpVersion = requestLine.at(2);
+    bool valid = false;
+    t_location location = m_serv.locations[getLocationName()];
+    for (unsigned long i = 0; i < location.allowed_methods.size(); i++){
+        if (m_requestPath == location.allowed_methods.at(i))
+            valid = true;
+    }
+    if (!valid){
+        m_requestType = "MethodNotAllowed";
+        return ;
+    }
     /*
     ########      m_requestHeader noch füllen  ?     ########
     */

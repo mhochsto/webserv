@@ -23,7 +23,7 @@ class Request {
 
         std::map<std::string, std::string>  getRequestHeader( void ) const;
     public:
-        Request( std::string rawRequest, t_server serv );
+        Request( std::string rawRequest, t_server serv);
         ~Request();
 
         std::string                         getType( void ) const;

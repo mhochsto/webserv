@@ -108,7 +108,7 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 		line.erase(0, 1);
 	location.path = line;
 
-	//init location default values here;
+	//init location default values here; (Dont forget error pages & set index to default value or getResponse breaks)
 
 	while (std::getline(sstream, line)){
 		if (line.at(line.length() - 1) == ';'){

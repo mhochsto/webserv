@@ -10,6 +10,8 @@
 
 #include <unistd.h> // access()
 #include <sys/stat.h> // stat()
+#include <sys/types.h> // struct DIR; *dir()
+#include <dirent.h> // struct dirent
 
 # include "Config.hpp"
 
@@ -27,7 +29,12 @@ class Response {
         void getResponse( const Request& request );
         void postResponse( const Request& request );
         void deleteResponse( const Request& request );
-        void invalidResponse( const Request& request );
+        
+        void badRequestResponse( const Request& request );
+        void methodNotAllowedResponse( const Request& request );
+        
+        std::string showDir(std::string path);
+        void createResponse(std::string rspType, std::string file);
 
     public:
         Response( const Request& request, t_server serv, t_location location );
@@ -39,7 +46,6 @@ class Response {
 
 std::string timestamp(void);
 # define FOF_PATH "./website/pages/404.html"
-# define FOF(body, length)("HTTP/1.1 404 NotFound\n" timestamp() "Server: webserv\nContent-Length: " length "\nConnection: Closed\Content-Type: text/html\n\n" body)
 
 
 

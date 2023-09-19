@@ -1,9 +1,9 @@
 #include "Server.hpp"
 #include "Config.hpp"
+#include "Response.hpp"
+#include "Request.hpp"
 
 int main(int argc, char **argv) {
-
-    
     
     Config config("webserv.config");
     Server webserv(config);
