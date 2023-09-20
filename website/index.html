@@ -6,5 +6,29 @@
   </head>
   <body>
     <p>This is an example paragraph. Anything in the <strong>body</strong> tag will appear on the page, just like this <strong>p</strong> tag and its contents.</p>
+  </br>
+  <p> (!) This Form uses the <strong>GET</strong> method</p>
+    <form action="/pages/thank-you.html" method="get">
+      <label for="fname">First name:</label>
+      <input type="text" id="fname" name="fname" required><br><br>
+      <label for="lname">Last name:</label>
+      <input type="text" id="lname" name="lname" required><br><br>
+      <input type="submit" value="Submit">
+    </form>
+  </br>
+  <p> This Form uses the <strong>POST</strong> method</p>
+    <form method="post">
+      <label for="fname">First name:</label>
+      <input type="text" id="fname" name="fname" required><br><br>
+      <label for="lname">Last name:</label>
+      <input type="text" id="lname" name="lname" required><br><br>
+      <input type="submit" value="Submit">
+    </form>
+
+    <script>
+      
+      addEventListener("submit", (event) => {});
+      onsubmit = (event) => {console.log("yo")};
+    </script>
   </body>
 </html>

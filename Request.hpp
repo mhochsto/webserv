@@ -31,6 +31,7 @@ class Request {
         std::string                         getHttpVersion( void ) const;
         std::string                         getBody( void ) const;
         std::string                         getLocationName( void );
+        void                                setPath( std::string newPath);
 };
 
 

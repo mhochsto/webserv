@@ -84,7 +84,7 @@ void Server::respond( int clientIndex ){
 		m_sockets.erase(m_sockets.begin() + clientIndex);
 		return ;
 	}
-	if (err == -1){
+	else if (err == -1){
 		//hier muss evtl. errno geprüft werden
 		return ;
 	}

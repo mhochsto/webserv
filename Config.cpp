@@ -104,10 +104,9 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 	line = line.substr(0, line.find_first_of(WHITESPACE));
 	if (line != "/" && line.at(line.length() - 1) == '/')
 		line.resize(line.length() - 1);
-	if (line != "/" && line.at(0) == '/')
-		line.erase(0, 1);
-	location.path = line;
-
+	if (line.at(0) != '/')
+		line = "/"+ line;
+	location.path = "." + line;
 	//init location default values here; (Dont forget error pages & set index to default value or getResponse breaks)
 
 	while (std::getline(sstream, line)){

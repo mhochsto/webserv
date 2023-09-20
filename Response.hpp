@@ -20,24 +20,23 @@ class Request;
 class Response {
     private:
         std::string m_response;
-        int m_responseSize;
-        t_location m_location;
-        t_server m_serv;    
-        typedef void (Response::*funcPtr)(const Request&);
+        int         m_responseSize;
+        std::map<std::string, std::string> m_UrlParameter;
+        t_location  m_location;
+        t_server    m_serv;    
+        typedef void (Response::*funcPtr)(Request&);
         
         std::map<std::string, funcPtr> m_responseMap;
-        void getResponse( const Request& request );
-        void postResponse( const Request& request );
-        void deleteResponse( const Request& request );
-        
-        void badRequestResponse( const Request& request );
-        void methodNotAllowedResponse( const Request& request );
-        
+        void getResponse( Request& request );
+        void postResponse( Request& request );
+        void deleteResponse( Request& request );
+
+        void saveGetParam( std::string content ); 
         std::string showDir(std::string path);
         void createResponse(std::string rspType, std::string file);
 
     public:
-        Response( const Request& request, t_server serv, t_location location );
+        Response( Request& request, t_server serv, t_location location );
         const char *returnResponse( void );
         int  getSize( void );
 

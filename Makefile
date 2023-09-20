@@ -1,6 +1,6 @@
 NAME :=	webserv
 
-CFLAGS := -Wall -Werror -Wextra -std=c++98 -g
+CFLAGS := -Wall -Werror -Wextra -std=c++98 -gdwarf-4
 
 CC := c++
 
