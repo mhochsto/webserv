@@ -1,9 +1,10 @@
 # include "Response.hpp"
 # include "Request.hpp"
 # include "Error.hpp"
-#include "utils.hpp"
+# include "utils.hpp"
+# include "CgiHandler.hpp"
 
-Response::Response( Request& request, t_server serv, t_location location ): m_location(location), m_serv(serv) {
+Response::Response(Request& request, t_server serv, t_location location ): m_location(location), m_serv(serv) {
 
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
@@ -60,6 +61,7 @@ void Response::getResponse( Request& request ){
 	std::fstream file;
 	std::string fileName;
 
+	/* save url parameters */
 	if (path.find_first_of('?') != std::string::npos){
 		saveGetParam(path.substr(path.find_first_of('?') + 1));
 		path.erase(path.find_first_of('?'));
@@ -74,7 +76,21 @@ void Response::getResponse( Request& request ){
 	}
 
 	/* Pick response Code and Filename */
-	if (path == "MethodNotAllowed"){
+	if (!std::strncmp(path.c_str(), CGI_PATH, std::strlen(CGI_PATH))){
+		std::string str = path;
+		str.erase(0, std::strlen(CGI_PATH) + 1);
+		str = str.substr(0, str.find_first_of('/') == std::string::npos ? str.length() : str.find_first_of('/'));
+		str = str.find_first_of('/') != std::string::npos ? path : CGI_PATH "/" + str; 
+		if (access(str.c_str(), X_OK) == -1){
+			resp = "403 Forbidden\n";
+			fileName = m_serv.errorPages["403"];
+		}
+		else {
+			cgiResponse(path, request);
+			return ;
+		}
+	}
+	else if (path == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
 		fileName = m_serv.errorPages["405"];
 	}
@@ -117,6 +133,7 @@ void Response::getResponse( Request& request ){
 	file.close();
 	createResponse(resp, sstream.str());
 }
+
 void Response::postResponse( Request& request ){
 	request.setPath(request.getPath() + "?" + request.getBody());
 	getResponse(request);
@@ -130,16 +147,11 @@ const char *Response::returnResponse( void ) {return (m_response.c_str());}
 
 int  Response::getSize( void ){return (m_responseSize);}
 
-
-std::string timestamp(void){
-	time_t rawtime;
-	struct tm * tm_localTime;
-	char buffer[200];
-
-	time (&rawtime);
-	tm_localTime = localtime (&rawtime);    
-	strftime(buffer, 200,"Date: %a, %d %b %G %T %Z\n",tm_localTime);
-
-	std::string str(buffer);
-	return (str.c_str());
+/* STDIN && Env still missing */
+void Response::cgiResponse( std::string path, Request& request ){
+	CgiHandler cgi(*this, request, m_serv, path);
+	createResponse("200 OK\n", cgi.getOutput());
 }
+
+
+

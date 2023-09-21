@@ -2,7 +2,6 @@
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
 
-# include <string>
 # include <map>
 # include <fstream>
 # include <sstream>
@@ -11,7 +10,7 @@
 # include <cstring>
 # include <cstdlib>
 # include <set>
-# include <unistd.h> // access
+# include <unistd.h> // access() && dup2
 
 # define ALLOWED_REQUESTS {"GET", "POST", "DELETE"}
 # define ALLOWED_REQUESTS_COUNT 3
@@ -24,6 +23,9 @@
 
 #define CLIENT_BODY_SIZE_MIN 1
 #define CLIENT_BODY_SIZE_Max 1000000 // = 1MB - https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-body-size-limit/
+
+#define CGI_PATH "./website/cgi-bin"
+
 
 typedef struct s_location {
     std::vector<std::string>    allowed_methods;

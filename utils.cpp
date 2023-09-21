@@ -20,3 +20,16 @@ std::string closestMatchingLocation( std::map<std::string, t_location> locMap, s
     } while (!path.empty());
     return path;
 }
+
+std::string timestamp(void){
+	time_t rawtime;
+	struct tm * tm_localTime;
+	char buffer[200];
+
+	time (&rawtime);
+	tm_localTime = localtime (&rawtime);    
+	strftime(buffer, 200,"Date: %a, %d %b %G %T %Z\n",tm_localTime);
+
+	std::string str(buffer);
+	return (str.c_str());
+}

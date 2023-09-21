@@ -91,7 +91,9 @@ void Server::respond( int clientIndex ){
 	Request currRequest(buffer, m_serv);
 	try{
 		Response currResponse(currRequest, m_serv, m_serv.locations[currRequest.getLocationName()]);
-		send(m_sockets.at(clientIndex).fd, currResponse.returnResponse(), currResponse.getSize(), 0);
+		ssize_t sendReturn = send(m_sockets.at(clientIndex).fd, currResponse.returnResponse(), currResponse.getSize(), 0);
+		/* handle send -1 ret*/
+		(void)sendReturn;
 	}	
 	catch(const std::exception& e){
 		std::cerr << e.what() << std::endl;

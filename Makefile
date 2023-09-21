@@ -9,7 +9,8 @@ SRC :=	main.cpp		\
 		Request.cpp		\
 		Response.cpp	\
 		Config.cpp		\
-		utils.cpp
+		utils.cpp		\
+		CgiHandler.cpp
 
 OBJ := $(SRC:%.cpp=%.o)
 

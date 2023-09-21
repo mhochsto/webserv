@@ -37,6 +37,12 @@ Request::Request(std::string rawRequest, t_server serv): m_serv(serv){
 		m_requestPath = "MethodNotAllowed";
 		return ;
 	}
+	while (std::getline(streamRawRequest, line)){
+		if (line.find_first_of(':') != std::string::npos){
+			m_requestData[line.substr(0, line.find_first_of(':'))] = line.substr(line.find_first_of(':') + 1);
+		}
+	}
+
 	/*
 	########      m_requestHeader noch füllen  ?     ########
 	*/
@@ -55,7 +61,11 @@ Request::~Request(){}
 void Request::setPath( std::string newPath) {m_requestPath = newPath;}
 std::string Request::getType( void ) const {return m_requestType;}
 std::string Request::getPath( void ) const {return m_requestPath;}
+std::map<std::string, std::string>  Request::getData( void ) const {return m_requestData;}
+
 std::string Request::getHttpVersion( void ) const {return m_requestHttpVersion;}
 std::string Request::getBody( void ) const {return m_requestBody;}
+std::string Request::getRequestHttpVersion( void ) const { return m_requestHttpVersion;}
+
 std::map<std::string, std::string> Request::getRequestHeader( void ) const {return m_requestHeader;}
 

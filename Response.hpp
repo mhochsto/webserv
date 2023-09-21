@@ -1,17 +1,15 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-# include <map>
-# include <string>
-# include <utility>
 # include <algorithm>
-# include <fstream>
 # include <ctime>
 
-#include <unistd.h> // access()
 #include <sys/stat.h> // stat()
 #include <sys/types.h> // struct DIR; *dir()
 #include <dirent.h> // struct dirent
+
+
+#include <fcntl.h>
 
 # include "Config.hpp"
 
@@ -34,6 +32,7 @@ class Response {
         void saveGetParam( std::string content ); 
         std::string showDir(std::string path);
         void createResponse(std::string rspType, std::string file);
+        void cgiResponse( std::string path, Request& request );
 
     public:
         Response( Request& request, t_server serv, t_location location );
