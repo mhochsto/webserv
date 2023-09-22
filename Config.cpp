@@ -1,5 +1,6 @@
 # include "Config.hpp"
-# include "Error.hpp"
+# include "utils.hpp"
+
 
 Config::Config( const Config &cpy){
 	m_configFileContent = cpy.m_configFileContent;
@@ -129,13 +130,6 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 	}
 	serv.locations[location.path] = location;
 }
-
-std::string Config::getFirstWord(std::string str){
-	str = str.substr(str.find_first_not_of(WHITESPACE));
-	return (str.substr(0, str.find_first_of(WHITESPACE)));
-}
-
-
 
 void Config::fillServerStruct(std::string newServer, t_server& serv){
 	std::stringstream sstream(newServer);

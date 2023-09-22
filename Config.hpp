@@ -12,6 +12,8 @@
 # include <set>
 # include <unistd.h> // access() && dup2
 
+# include "Error.hpp"
+
 # define ALLOWED_REQUESTS {"GET", "POST", "DELETE"}
 # define ALLOWED_REQUESTS_COUNT 3
 
@@ -62,7 +64,6 @@ class Config{
         std::string getBlock( std::string type, std::string& in );
         void        fillServerStruct(std::string newServer, t_server& serv);
 
-        std::string getFirstWord(std::string str);
         std::string validateValueFormat(std::string str);
         void        validateServerName(std::string domain);
 

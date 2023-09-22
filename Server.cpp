@@ -44,7 +44,7 @@ Server::Server( Config config ): m_serv(config.getServerConfig().at(0)){
 
 void Server::run( void ){
 	while (true){
-		if (poll(m_sockets.data(), m_sockets.size(), -1) == -1){
+		if (poll(m_sockets.data(), m_sockets.size(), TIMEOUT) == -1){
 			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); i++){
@@ -52,14 +52,28 @@ void Server::run( void ){
 				addConnection();
 			}
 			else {
-				respond(i);
+				respond(m_sockets.at(i));
 			}
 		}
 	}
 }
 
+std::string Server::convertIPtoString(unsigned long ip){
+    std::stringstream sstream;
+	sstream << (int)((ip >> 24) & 0xFF);
+	sstream << ".";
+    sstream << (int)((ip >> 16) & 0xFF);
+	sstream << ".";
+    sstream << (int)((ip >> 8) & 0xFF);
+	sstream << ".";
+    sstream << (int)(ip & 0xFF);
+	return sstream.str();
+}
+
 void Server::addConnection( void ){
 	pollfd newClient;
+	struct sockaddr_in newClientAddr;
+	socklen_t addrlen = sizeof(newClientAddr);
 
 	do {
 		std::memset(&newClient, 0, sizeof(newClient));
@@ -70,32 +84,39 @@ void Server::addConnection( void ){
 		}
 		newClient.events = POLLIN | POLLOUT;
 		m_sockets.push_back(newClient);
+		if (getsockname(newClient.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1) throw std::runtime_error(SYS_ERROR("getsockname"));
+		m_socketsIP[newClient.fd] = convertIPtoString(newClientAddr.sin_addr.s_addr);
 	} while (newClient.fd != -1);
 
 }
 
 
-void Server::respond( int clientIndex ){
-	int err;
-	char buffer[HTTP_HEADER_LIMIT + m_serv.clientMaxBodySize];
+void Server::respond( pollfd client ){
 
-	err = recv(m_sockets[clientIndex].fd, buffer, sizeof(buffer), 0);
+	Request request(m_serv);
+	
+	int err = request.receive(client.fd);
 	if (err == 0){ // socket now closed -> erase socket
-		m_sockets.erase(m_sockets.begin() + clientIndex);
+		m_socketsIP.erase(client.fd);
+		/* loop needed, since comparison between pollfd is invalid */
+		for (std::vector<pollfd>::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it){
+			if (it->fd == client.fd){
+				m_sockets.erase(it);
+				break;
+			}
+		}
 		return ;
 	}
 	else if (err == -1){
 		//hier muss evtl. errno geprüft werden
 		return ;
 	}
-	Request currRequest(buffer, m_serv);
-	try{
-		Response currResponse(currRequest, m_serv, m_serv.locations[currRequest.getLocationName()]);
-		ssize_t sendReturn = send(m_sockets.at(clientIndex).fd, currResponse.returnResponse(), currResponse.getSize(), 0);
-		/* handle send -1 ret*/
-		(void)sendReturn;
+
+	try {
+		Response response(request, m_serv, m_serv.locations[request.getLocationName()], m_socketsIP[client.fd]);
+		if (send(client.fd, response.returnResponse(), response.getSize(), 0) == -1) throw std::runtime_error(SYS_ERROR("send"));
 	}	
-	catch(const std::exception& e){
+	catch(const std::exception& e) {
 		std::cerr << e.what() << std::endl;
 	}
 }

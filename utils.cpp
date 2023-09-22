@@ -33,3 +33,9 @@ std::string timestamp(void){
 	std::string str(buffer);
 	return (str.c_str());
 }
+
+
+std::string getFirstWord(std::string str){
+	str = str.substr(str.find_first_not_of(WHITESPACE));
+	return (str.substr(0, str.find_first_of(WHITESPACE)));
+}

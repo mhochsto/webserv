@@ -4,7 +4,7 @@
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(Request& request, t_server serv, t_location location ): m_location(location), m_serv(serv) {
+Response::Response(Request& request, t_server serv, t_location location, std::string clientIP ): m_clientIP(clientIP), m_location(location), m_serv(serv) {
 
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
@@ -60,10 +60,11 @@ void Response::getResponse( Request& request ){
 	std::string resp;
 	std::fstream file;
 	std::string fileName;
-
+	std::string rawUrlParameter;
 	/* save url parameters */
 	if (path.find_first_of('?') != std::string::npos){
-		saveGetParam(path.substr(path.find_first_of('?') + 1));
+		rawUrlParameter = path.substr(path.find_first_of('?') + 1);
+		saveGetParam(rawUrlParameter);
 		path.erase(path.find_first_of('?'));
 	}
 
@@ -84,9 +85,10 @@ void Response::getResponse( Request& request ){
 		if (access(str.c_str(), X_OK) == -1){
 			resp = "403 Forbidden\n";
 			fileName = m_serv.errorPages["403"];
+			std::cout << fileName << std::endl;
 		}
 		else {
-			cgiResponse(path, request);
+			cgiResponse(path, request, rawUrlParameter);
 			return ;
 		}
 	}
@@ -148,10 +150,9 @@ const char *Response::returnResponse( void ) {return (m_response.c_str());}
 int  Response::getSize( void ){return (m_responseSize);}
 
 /* STDIN && Env still missing */
-void Response::cgiResponse( std::string path, Request& request ){
-	CgiHandler cgi(*this, request, m_serv, path);
+void Response::cgiResponse( std::string path, Request& request, std::string rawUrlParameter ){
+	CgiHandler cgi(*this, request, m_serv, path, rawUrlParameter);
 	createResponse("200 OK\n", cgi.getOutput());
 }
 
-
-
+std::string Response::getClientAddr( void ) { return m_clientIP;}
