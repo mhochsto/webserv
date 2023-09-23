@@ -39,3 +39,15 @@ std::string getFirstWord(std::string str){
 	str = str.substr(str.find_first_not_of(WHITESPACE));
 	return (str.substr(0, str.find_first_of(WHITESPACE)));
 }
+
+std::string convertIPtoString(unsigned long ip){
+    std::stringstream sstream;
+	sstream << (int)((ip >> 24) & 0xFF);
+	sstream << ".";
+    sstream << (int)((ip >> 16) & 0xFF);
+	sstream << ".";
+    sstream << (int)((ip >> 8) & 0xFF);
+	sstream << ".";
+    sstream << (int)(ip & 0xFF);
+	return sstream.str();
+}

@@ -9,6 +9,8 @@
 
 /* ###################################################### */
 
+
+/* Set up Socket*/
 Server::Server( Config config ): m_serv(config.getServerConfig().at(0)){
 
 	std::memset(&m_serverSocket, 0, sizeof(m_serverSocket));
@@ -56,18 +58,6 @@ void Server::run( void ){
 			}
 		}
 	}
-}
-
-std::string Server::convertIPtoString(unsigned long ip){
-    std::stringstream sstream;
-	sstream << (int)((ip >> 24) & 0xFF);
-	sstream << ".";
-    sstream << (int)((ip >> 16) & 0xFF);
-	sstream << ".";
-    sstream << (int)((ip >> 8) & 0xFF);
-	sstream << ".";
-    sstream << (int)(ip & 0xFF);
-	return sstream.str();
 }
 
 void Server::addConnection( void ){
