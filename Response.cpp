@@ -85,7 +85,6 @@ void Response::getResponse( Request& request ){
 		if (access(str.c_str(), X_OK) == -1){
 			resp = "403 Forbidden\n";
 			fileName = m_serv.errorPages["403"];
-			std::cout << fileName << std::endl;
 		}
 		else {
 			cgiResponse(path, request, rawUrlParameter);

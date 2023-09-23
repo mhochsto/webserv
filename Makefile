@@ -7,10 +7,11 @@ CC := c++
 SRC :=	main.cpp		\
 		Server.cpp		\
 		Request.cpp		\
-		Response.cpp	\
 		Config.cpp		\
 		utils.cpp		\
-		CgiHandler.cpp
+		
+		# CgiHandler.cpp
+		# Response.cpp
 
 OBJ := $(SRC:%.cpp=%.o)
 

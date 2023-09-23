@@ -28,18 +28,21 @@ class Config;
 
 class Server {
 	private:
-		pollfd 					m_serverSocket;
 		std::vector<pollfd> 	m_sockets;
 		std::map<int, std::string> m_socketsIP;
-		std::vector<t_server>	m_servers;
-		t_server                m_serv;
+		std::vector<t_server>	m_serverConfig;
+		std::map<int, int> m_clientServerMap;
 
 	public:
-		Server( Config config );
+		Server( std::vector<t_server> serverConfig);
+		~Server();
+		void CreateServerSocket( t_server& server );
 		void run( void );
-		void addConnection( void );
-		void respond ( pollfd client );
-		std::string convertIPtoString(unsigned long ip);
+		void addConnection( int serverFD );
+		void handleRequest ( pollfd client );
+		t_server findConfig(pollfd client);
+		bool isServerSocket(int fd);
+		void removeClient( pollfd client );
 };
 
 # define VALID_REQUESTS {"GET", "POST", "DELETE" }
