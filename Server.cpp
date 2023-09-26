@@ -5,11 +5,6 @@
 # include "Error.hpp"
 # include "Config.hpp"
 
-/* ###################################################### */
-
-/* ###################################################### */
-
-
 void Server::CreateServerSocket( t_server& server ){
 	pollfd	serverSocket;
 	std::memset(&serverSocket, 0, sizeof(serverSocket));
@@ -71,59 +66,58 @@ void Server::run( void ){
 				handleRequest(m_sockets.at(i));
 				m_sockets.at(i).revents = 0;
 				m_sockets.at(i).events = 0;
-
 			}
 		}
 	}
 }
 
 void Server::addConnection( int serverFD ){
-	pollfd newClient;
+	t_client newClient;
+	pollfd newClientPoll;
 	struct sockaddr_in newClientAddr;
 	socklen_t addrlen = sizeof(newClientAddr);
+	std::memset(&newClientPoll, 0, sizeof(newClientPoll));
 
 	do {
-		std::memset(&newClient, 0, sizeof(newClient));
 		errno = 0;
-		newClient.fd = accept(serverFD, NULL, NULL);
-		if (newClient.fd == -1){ // muss hier Errno geprüft werden?
+		newClientPoll.fd = accept(serverFD, NULL, NULL);
+		if (newClientPoll.fd == -1){ // muss hier Errno geprüft werden?
 			return ;
 		}
-		newClient.events = POLLIN | POLLOUT;
-		m_sockets.push_back(newClient);
-		m_clientServerMap[newClient.fd] = serverFD;
-		if (getsockname(newClient.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1) throw std::runtime_error(SYS_ERROR("getsockname"));
-		m_socketsIP[newClient.fd] = convertIPtoString(newClientAddr.sin_addr.s_addr);
+		newClientPoll.events = POLLIN | POLLOUT;
+		m_sockets.push_back(newClientPoll);
+		
+		if (getsockname(newClientPoll.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1) throw std::runtime_error(SYS_ERROR("getsockname"));
+
+		newClient.fd = newClientPoll.fd;
+		newClient.serverFD = serverFD;
+		newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
+		setConfig(newClient);
+		m_clients[newClient.fd] = newClient;
 	} while (newClient.fd != -1);
 
 }
 
-t_server Server::findConfig(pollfd client){
-	int serverFD = m_clientServerMap[client.fd];
-	if (!serverFD)
-		return *m_serverConfig.begin();
+void Server::setConfig(t_client& client){
 	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		if (it->fd == serverFD)
-			return *it;
+		if (it->fd == client.serverFD)
+			client.config = *it;
 	}
-	return *m_serverConfig.begin();
 }
 
-void Server::removeClient( pollfd client ){
-	m_socketsIP.erase(client.fd);
-	m_clientServerMap.erase(client.fd);
-	// loop needed, since comparison between pollfd is invalid
-	for (std::vector<pollfd>::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it){
-		if (it->fd == client.fd){
-			m_sockets.erase(it);
-			break;
-		}
+void Server::removeClient( t_client& client ){
+	if (m_clients.find(client.fd) == m_clients.end()){
+		return ; 
 	}
+	close (client.fd);
+	m_clients.erase(client.fd);
 }
 
 void Server::handleRequest( pollfd client ){
-	Request request(client, findConfig(client));
+	Request request(m_clients[client.fd]);
+	Response response(m_clients[client.fd], request);
 
+	send(client.fd, response.returnResponse(), response.getSize(), 0);
 /*
 	if (err == 0){ // socket now closed -> erase socket
 
@@ -136,7 +130,7 @@ void Server::handleRequest( pollfd client ){
 	}
 	try {
 		Response response(request, m_serv, m_serv.locations[request.getLocationName()], m_socketsIP[client.fd]);
-		if (send(client.fd, response.returnResponse(), response.getSize(), 0) == -1) throw std::runtime_error(SYS_ERROR("send"));
+		if ( == -1) throw std::runtime_error(SYS_ERROR("send"));
 	}	
 	catch(const std::exception& e) {
 		std::cerr << e.what() << std::endl;

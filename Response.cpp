@@ -1,10 +1,11 @@
+# include "Server.hpp"
 # include "Response.hpp"
 # include "Request.hpp"
 # include "Error.hpp"
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(Request& request, t_server serv, t_location location, std::string clientIP ): m_clientIP(clientIP), m_location(location), m_serv(serv) {
+Response::Response(t_client client, Request& request ): m_client(client) {
 
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
@@ -19,7 +20,7 @@ std::string Response::showDir(std::string path){
 	DIR *dir = opendir(path.c_str());
 	if (!dir) throw std::runtime_error(SYS_ERROR("opendir"));
 	struct dirent *directory;
-	path = path.erase(path.find(m_serv.root), m_serv.root.length());
+	path = path.erase(path.find(m_client.config.root), m_client.config.root.length());
 
 	file << "<!DOCTYPE html>\n<html>\n	<head>\n		<title>Directory Overview</title>\n	</head>\n	<body>\n		<p>List of files:</p>\n		<dir>\n";
 
@@ -69,11 +70,11 @@ void Response::getResponse( Request& request ){
 	}
 
 	/* set Path for homepage / location to index if available */
-	if (path == m_serv.root){
-			path.append("/" + m_serv.index);
+	if (path == m_client.config.root){
+			path.append("/" + m_client.config.index);
 	}
-	else if (path == m_location.path && !m_location.index.empty()){
-		path.append("/" + m_location.index);
+	else if (path == m_client.location.path && !m_client.location.index.empty()){
+		path.append("/" + m_client.location.index);
 	}
 
 	/* Pick response Code and Filename */
@@ -84,7 +85,7 @@ void Response::getResponse( Request& request ){
 		str = str.find_first_of('/') != std::string::npos ? path : CGI_PATH "/" + str; 
 		if (access(str.c_str(), X_OK) == -1){
 			resp = "403 Forbidden\n";
-			fileName = m_serv.errorPages["403"];
+			fileName = m_client.config.errorPages["403"];
 		}
 		else {
 			cgiResponse(path, request, rawUrlParameter);
@@ -93,39 +94,39 @@ void Response::getResponse( Request& request ){
 	}
 	else if (path == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
-		fileName = m_serv.errorPages["405"];
+		fileName = m_client.config.errorPages["405"];
 	}
 	else if (path == "BadRequest"){
 		resp = "400 Bad Request\n";
-		fileName = m_serv.errorPages["400"];
+		fileName = m_client.config.errorPages["400"];
 	}
 	else if (access(path.c_str(), F_OK) == -1){
 		resp = "404 NotFound\n";
-		fileName = m_serv.errorPages["404"];
+		fileName = m_client.config.errorPages["404"];
 	}
 	else if (access(path.c_str(), R_OK) == -1){
 		resp = "403 Forbidden\n";
-		fileName = m_serv.errorPages["403"];
+		fileName = m_client.config.errorPages["403"];
 	}
 	else {
 		struct stat statbuf;
 		std::memset(&statbuf, 0 , sizeof(struct stat));
 		if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
 		if (S_ISDIR(statbuf.st_mode)){ // path is directory
-			if (m_location.autoIndex){
+			if (m_client.location.autoIndex){
 				resp = "200 OK\n";
 				createResponse(resp, showDir(path));
 				return ;
 			} else{
 				resp = "403 Forbidden\n";
-				fileName = m_serv.errorPages["403"];
+				fileName = m_client.config.errorPages["403"];
 			}
 		}
 		else {
 			resp = "200 OK\n";
 			fileName = path;
 		}
-	} 
+	}
 	file.open(fileName.c_str());
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
@@ -150,8 +151,6 @@ int  Response::getSize( void ){return (m_responseSize);}
 
 /* STDIN && Env still missing */
 void Response::cgiResponse( std::string path, Request& request, std::string rawUrlParameter ){
-	CgiHandler cgi(*this, request, m_serv, path, rawUrlParameter);
+	CgiHandler cgi(*this, request, m_client.config, path, rawUrlParameter);
 	createResponse("200 OK\n", cgi.getOutput());
 }
-
-std::string Response::getClientAddr( void ) { return m_clientIP;}

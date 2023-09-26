@@ -26,23 +26,30 @@
 
 class Config;
 
+typedef struct s_client {
+	int fd;
+	int serverFD;
+	std::string ip;
+	t_server config;
+	t_location location;
+} t_client;
+
 class Server {
 	private:
 		std::vector<pollfd> 	m_sockets;
-		std::map<int, std::string> m_socketsIP;
 		std::vector<t_server>	m_serverConfig;
-		std::map<int, int> m_clientServerMap;
+		std::map<int, t_client> m_clients;
 
 	public:
-		Server( std::vector<t_server> serverConfig);
+		Server( std::vector<t_server> serverConfig );
 		~Server();
 		void CreateServerSocket( t_server& server );
 		void run( void );
 		void addConnection( int serverFD );
 		void handleRequest ( pollfd client );
-		t_server findConfig(pollfd client);
+		void setConfig( t_client& client );
 		bool isServerSocket(int fd);
-		void removeClient( pollfd client );
+		void removeClient( t_client& client );
 };
 
 # define VALID_REQUESTS {"GET", "POST", "DELETE" }
