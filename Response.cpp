@@ -61,6 +61,7 @@ void Response::getResponse( Request& request ){
 	std::fstream file;
 	std::string fileName;
 	std::string rawUrlParameter;
+	
 	/* save url parameters */
 	if (path.find_first_of('?') != std::string::npos){
 		rawUrlParameter = path.substr(path.find_first_of('?') + 1);
@@ -118,7 +119,6 @@ void Response::getResponse( Request& request ){
 			fileName = path;
 		}
 	}
-
 	file.open(fileName.c_str());	
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));

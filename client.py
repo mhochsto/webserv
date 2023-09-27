@@ -13,7 +13,7 @@ def captureServ(p):
     print(out)
 
 def testCase1(sock):
-    sock.send(b"GET /website/pages HTTP/1.1\r\nTransfer-Encoding: chunked\r\n")
+    sock.send(b"GET /website/pages HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
     time.sleep(0.1)
     sock.send(b" E\r\nthis is a test\r\n")
     time.sleep(0.1)
@@ -27,8 +27,7 @@ def testCase1(sock):
 #time.sleep(0.1)
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect(('localhost', 7700))
-sock.send(b"")
-
+testCase1(sock)
 
 
 

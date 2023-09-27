@@ -52,7 +52,6 @@ bool Server::isServerSocket(int fd){
 	}
 	return false;
 }
-#include <stdio.h>
 void Server::run( void ){
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), TIMEOUT) == -1){
@@ -60,9 +59,11 @@ void Server::run( void ){
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); ++i){
 			if (isServerSocket(m_sockets.at(i).fd)){
-				addConnection(m_sockets.at(i).fd);
+				if (m_sockets.at(i).revents & POLLIN){
+					addConnection(m_sockets.at(i).fd);
+				}
 			}
-		   else if (m_sockets.at(i).revents != 0) {
+			else if (m_sockets.at(i).revents != 0) {
 				if (m_sockets.at(i).revents & POLLIN) {
 					handleRequest(m_clients[m_sockets.at(i).fd]);
 				}
@@ -81,7 +82,7 @@ void Server::addConnection( int serverFD ){
 	do {
 		errno = 0;
 		newClientPoll.fd = accept(serverFD, NULL, NULL);
-		if (newClientPoll.fd == -1){ // muss hier Errno geprüft werden?
+		if (newClientPoll.fd == -1){
 			return ;
 		}
 		newClientPoll.events = POLLIN | POLLOUT;
@@ -113,8 +114,6 @@ void Server::removeClient( t_client& client ){
 	m_clients.erase(client.fd);
 }
 
-#define BADREQUEST -1
-#define DONE 0
 chunkStatus	Server::recvChunks(t_client& client){
 	char buffer[client.config.clientMaxBodySize];
 		std::memset(buffer, 0, sizeof(buffer));
@@ -135,7 +134,7 @@ chunkStatus	Server::recvChunks(t_client& client){
 		if (chunkSizeLong == 0){
 			return Complete;
 		}
-		sBuffer.erase(0, chunkSizeAsString.length() + 2); // "+2 for \r\n"
+		sBuffer.erase(0, chunkSizeAsString.length() + 2); // "+ 2 for \r\n"
 		if ((long)sBuffer.length() - 2 != chunkSizeLong){
 			return BadRequest;
 		}
@@ -157,9 +156,10 @@ ssize_t Server::recvHeader(t_client& client){
 bool Server::headerFullyRecieved(t_client& client){
 	return (client.header.find("\r\n\r\n") != std::string::npos);
 }
+
 void Server::sendResponse( t_client& client, std::string status ){
-	if (status == "BadRequest"){
-		client.header = "BadRequest";
+	if (status != "Ok"){
+		client.header = status;
 	}
 	Request request(client);
 	Response response(client, request);
@@ -181,7 +181,6 @@ void Server::handleRequest( t_client& client ){
 			sendResponse(client, "BadRequest");
 			return ;
 		}
-
 		if (!headerFullyRecieved(client)){
 			return ;
 		}
@@ -199,13 +198,12 @@ void Server::handleRequest( t_client& client ){
 			return ;
 		case Complete:
 			sendResponse(client, "Ok");
+			return ;
 		case recvError:
-			std::cerr << SYS_ERROR("recv");
-			removeClient(client);
+			sendResponse(client, "MethodNotAllowed");
 			return ;
 	}
 }
-
 
 Server::~Server() {
 	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){

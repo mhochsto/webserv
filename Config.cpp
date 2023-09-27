@@ -178,6 +178,7 @@ void Config::addServer(std::string& in){
 			newLocation = getBlock("location", newServer);
 		}
 		catch (std::exception& e){
+			std::cerr << e.what() << std::endl;
 			break ;
 		}
 		addLocation(newLocation, serv);

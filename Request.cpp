@@ -2,10 +2,12 @@
 
 
 Request::Request(t_client& client): m_config(client.config), m_client(client) {
+	
 	if (parseHeader(client.header)){
 		m_requestPath = "BadRequest";
 		m_requestType = "GET";
 	}
+
 }
 
 Request::~Request(){}
