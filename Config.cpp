@@ -27,8 +27,7 @@ Config::Config(std::string configFileName ){
 			break ;
 		};
 	}
-
-}
+}	
 
 Config::~Config(){}
 

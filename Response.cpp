@@ -6,7 +6,6 @@
 # include "CgiHandler.hpp"
 
 Response::Response(t_client client, Request& request ): m_client(client) {
-
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
@@ -57,7 +56,7 @@ void Response::saveGetParam( std::string content ){
 }
 
 void Response::getResponse( Request& request ){
-	std::string path = request.getPath();
+	std::string path = m_client.config.root + request.getPath();
 	std::string resp;
 	std::fstream file;
 	std::string fileName;
@@ -68,22 +67,14 @@ void Response::getResponse( Request& request ){
 		saveGetParam(rawUrlParameter);
 		path.erase(path.find_first_of('?'));
 	}
-
 	/* set Path for homepage / location to index if available */
-	if (path == m_client.config.root){
-			path.append("/" + m_client.config.index);
-	}
-	else if (path == m_client.location.path && !m_client.location.index.empty()){
-		path.append("/" + m_client.location.index);
+	if (path == m_client.config.root + "/"){
+		path.append(m_client.location.index.empty() ? m_client.config.index : m_client.location.index);
 	}
 
 	/* Pick response Code and Filename */
 	if (!std::strncmp(path.c_str(), CGI_PATH, std::strlen(CGI_PATH))){
-		std::string str = path;
-		str.erase(0, std::strlen(CGI_PATH) + 1);
-		str = str.substr(0, str.find_first_of('/') == std::string::npos ? str.length() : str.find_first_of('/'));
-		str = str.find_first_of('/') != std::string::npos ? path : CGI_PATH "/" + str; 
-		if (access(str.c_str(), X_OK) == -1){
+		if (access(path.c_str(), X_OK) == -1){
 			resp = "403 Forbidden\n";
 			fileName = m_client.config.errorPages["403"];
 		}
@@ -92,11 +83,11 @@ void Response::getResponse( Request& request ){
 			return ;
 		}
 	}
-	else if (path == "MethodNotAllowed"){
+	else if (request.getPath() == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
 		fileName = m_client.config.errorPages["405"];
 	}
-	else if (path == "BadRequest"){
+	else if (request.getPath() == "BadRequest"){
 		resp = "400 Bad Request\n";
 		fileName = m_client.config.errorPages["400"];
 	}
@@ -127,7 +118,8 @@ void Response::getResponse( Request& request ){
 			fileName = path;
 		}
 	}
-	file.open(fileName.c_str());
+
+	file.open(fileName.c_str());	
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
 	std::stringstream sstream;

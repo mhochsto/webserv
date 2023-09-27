@@ -8,15 +8,18 @@ std::string closestMatchingLocation( std::map<std::string, t_location> locMap, s
     for (std::map<std::string, t_location>::iterator it = locMap.begin(); it != locMap.end(); it++){
         locMapNames.push_back(it->first);
     }
+    path = "." + path;
     std::sort(locMapNames.begin(), locMapNames.end(), compareLength);
     do {
-        if (path.find_first_of('/') == path.find_last_of('/'))
-            return path;
         for (std::vector<std::string>::iterator it = locMapNames.begin(); it != locMapNames.end(); it++){
-            if (*it == path)
+            if (*it == path){
                 return path;
+            }
         }
         path.erase(path.find_last_of('/'));
+        if (path == "."){
+            return "./";
+        }
     } while (!path.empty());
     return path;
 }

@@ -26,12 +26,17 @@
 
 class Config;
 
+enum chunkStatus {BadRequest,ChunkRecieved, Complete, recvError };
+
 typedef struct s_client {
 	int fd;
 	int serverFD;
 	std::string ip;
 	t_server config;
 	t_location location;
+	std::string header;
+	std::string body;
+	chunkStatus chunkState;
 } t_client;
 
 class Server {
@@ -46,10 +51,16 @@ class Server {
 		void CreateServerSocket( t_server& server );
 		void run( void );
 		void addConnection( int serverFD );
-		void handleRequest ( pollfd client );
+		void handleRequest ( t_client& client );
 		void setConfig( t_client& client );
 		bool isServerSocket(int fd);
 		void removeClient( t_client& client );
+
+		void 		sendResponse(t_client& client, std::string status );
+		chunkStatus	recvChunks(t_client& client);	
+		ssize_t 	recvHeader(t_client& client);
+		bool 		headerFullyRecieved(t_client& client);
+
 };
 
 # define VALID_REQUESTS {"GET", "POST", "DELETE" }

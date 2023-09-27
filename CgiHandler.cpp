@@ -28,7 +28,6 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_server serv, std:
 
     std::stringstream ssport;
     ssport << serv.port;
-
     m_env["SERVER_SOFTWARE"] = "webserv/1.0";
     m_env["SERVER_NAME"] = request.get("Host");
     m_env["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -52,7 +51,7 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_server serv, std:
     	m_env["HTTP_USER_AGENT"] = getFirstWord(request.get("User-Agent"));
 	}
 	(void)response;
-
+	execute();
 }
 
 void CgiHandler::execute(void){

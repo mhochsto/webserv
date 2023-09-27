@@ -2,78 +2,20 @@
 
 
 Request::Request(t_client& client): m_config(client.config), m_client(client) {
-	char c_buffer[HTTP_HEADER_LIMIT + m_config.clientMaxBodySize];
-	std::stringstream sstreamBuffer;
-	std::memset(c_buffer, 0, sizeof(c_buffer));
-	m_readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
-	if (m_readBytes == - 1){
-		return ;
-	}
-	else if (m_readBytes == 0){
+	if (parseHeader(client.header)){
 		m_requestPath = "BadRequest";
-		return ;
-	}
-	std::string sBuffer(c_buffer);
-
-	ErrCode status = parseHeader(sBuffer);
-	if (status != Ok){
-		return ;
-	}
-	if (m_requestData.find("Transfer-Encoding") != m_requestData.end() && m_requestData["Transfer-Encoding"] == "chunked"){
-		status = recvChunks(m_requestBody);
-		if (status != Ok){
-		return ;
-		}
-	}
-	else {
-		m_requestBody = sBuffer;
-	}
-	if (m_requestBody.size() > (unsigned long) m_config.clientMaxBodySize){
-		m_requestPath = "RequestEntityTooLarge";
+		m_requestType = "GET";
 	}
 }
 
 Request::~Request(){}
 
-
-ErrCode	Request::recvChunks(std::string& body){
-	char buffer[m_config.clientMaxBodySize];
-	do {
-		std::memset(buffer, 0, sizeof(buffer));
-		ssize_t rd = recv(m_clientFD, buffer, sizeof(buffer), 0);
-		if (rd == -1){
-			return Error;
-		}
-		else if (rd == 0){
-			return BadRequest;
-		}
-		std::string sBuffer(buffer);
-		std::string chunkSizeAsString = sBuffer.substr(0, sBuffer.find("\r\n"));	
-		char *end = NULL;
-		long chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
-		if (*end){
-			m_requestPath = "BadRequest";
-			return BadRequest;
-		}
-		if (chunkSizeLong == 0){
-			return Ok;
-		}
-		sBuffer.erase(0, chunkSizeAsString.length() + 2); // "+2 for \r\n"
-		if ((long)sBuffer.length() - 2 != chunkSizeLong){
-			m_requestPath = "BadRequest";
-			return BadRequest;
-		}
-		body.append(sBuffer);	
-	} while (true);
-	return Ok;
-}
-
-ErrCode Request::parseHeader( std::string& buffer ){
+int Request::parseHeader( std::string& buffer ){
 	std::stringstream sstreamBuffer(buffer);
 	std::string line;
 	std::getline(sstreamBuffer, line);
 		if (validateAndSetRequestLine(line)){
-		return BadRequest;
+		return 1;
 	}
 	buffer.erase(0, line.length() + 1);
 	while (std::getline(sstreamBuffer, line)){
@@ -83,10 +25,10 @@ ErrCode Request::parseHeader( std::string& buffer ){
 			buffer.erase(0, line.length() + 1);
 		}
 		else {
-			return Ok;
+			return 0;
 		}
 	}
-	return Ok;
+	return 0;
 }
 
 int Request::validateAndSetRequestLine( std::string line ) {
@@ -102,16 +44,15 @@ int Request::validateAndSetRequestLine( std::string line ) {
 	m_requestType = vec.at(0);
 	m_requestPath = vec.at(1);
 	m_requestHttpVersion = vec.at(2);
-
+	m_client.location = m_config.locations[getLocationName()];
 	bool valid = false;
-	t_location location = m_config.locations[getLocationName()];
-	/*todo : location path is wrong - fill location in client struct */
-	for (unsigned long i = 0; i < location.allowed_methods.size(); i++){
-		if (m_requestType == location.allowed_methods.at(i))
+	for (unsigned long i = 0; i < m_client.location.allowed_methods.size(); i++){
+		if (m_requestType == m_client.location.allowed_methods.at(i)){
 			valid = true;
+			break ;
+		}
 	}
 	if (!valid){
-		std::cout <<"reached\n";
 		m_requestPath = "MethodNotAllowed";
 	}
 	return 0;

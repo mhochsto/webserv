@@ -52,7 +52,7 @@ bool Server::isServerSocket(int fd){
 	}
 	return false;
 }
-
+#include <stdio.h>
 void Server::run( void ){
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), TIMEOUT) == -1){
@@ -62,11 +62,11 @@ void Server::run( void ){
 			if (isServerSocket(m_sockets.at(i).fd)){
 				addConnection(m_sockets.at(i).fd);
 			}
-			else if (m_sockets.at(i).revents & POLLIN){
-				handleRequest(m_sockets.at(i));
-				m_sockets.at(i).revents = 0;
-				m_sockets.at(i).events = 0;
-			}
+		   else if (m_sockets.at(i).revents != 0) {
+				if (m_sockets.at(i).revents & POLLIN) {
+					handleRequest(m_clients[m_sockets.at(i).fd]);
+				}
+		   }
 		}
 	}
 }
@@ -113,30 +113,99 @@ void Server::removeClient( t_client& client ){
 	m_clients.erase(client.fd);
 }
 
-void Server::handleRequest( pollfd client ){
-	Request request(m_clients[client.fd]);
-	Response response(m_clients[client.fd], request);
-
-	send(client.fd, response.returnResponse(), response.getSize(), 0);
-/*
-	if (err == 0){ // socket now closed -> erase socket
-
+#define BADREQUEST -1
+#define DONE 0
+chunkStatus	Server::recvChunks(t_client& client){
+	char buffer[client.config.clientMaxBodySize];
+		std::memset(buffer, 0, sizeof(buffer));
+		ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
+		if (rd == 0){
+			return BadRequest;
 		}
-		return ;
-	}
-	else if (err == -1){
-		//hier muss evtl. errno geprüft werden
-		return ;
-	}
-	try {
-		Response response(request, m_serv, m_serv.locations[request.getLocationName()], m_socketsIP[client.fd]);
-		if ( == -1) throw std::runtime_error(SYS_ERROR("send"));
-	}	
-	catch(const std::exception& e) {
-		std::cerr << e.what() << std::endl;
-	}
-*/
+		if (rd == -1){
+			return recvError;
+		}
+		std::string sBuffer(buffer);
+		std::string chunkSizeAsString = sBuffer.substr(0, sBuffer.find("\r\n"));	
+		char *end = NULL;
+		long chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
+		if (*end){
+			return BadRequest;
+		}
+		if (chunkSizeLong == 0){
+			return Complete;
+		}
+		sBuffer.erase(0, chunkSizeAsString.length() + 2); // "+2 for \r\n"
+		if ((long)sBuffer.length() - 2 != chunkSizeLong){
+			return BadRequest;
+		}
+		client.body.append(sBuffer);
+		return ChunkRecieved;
 }
+
+ssize_t Server::recvHeader(t_client& client){
+	char c_buffer[HTTP_HEADER_LIMIT + client.config.clientMaxBodySize];
+	std::memset(c_buffer, 0, sizeof(c_buffer));
+	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
+	if (readBytes <= 0){
+		return readBytes;
+	}
+	client.header += c_buffer;
+	return readBytes;
+}
+
+bool Server::headerFullyRecieved(t_client& client){
+	return (client.header.find("\r\n\r\n") != std::string::npos);
+}
+void Server::sendResponse( t_client& client, std::string status ){
+	if (status == "BadRequest"){
+		client.header = "BadRequest";
+	}
+	Request request(client);
+	Response response(client, request);
+	send(client.fd, response.returnResponse(), response.getSize(), 0);
+	client.header.clear();
+	client.body.clear();
+}
+
+void Server::handleRequest( t_client& client ){
+	ssize_t recvValue;
+	if (!headerFullyRecieved(client)){
+		recvValue = recvHeader(client);
+		if (recvValue == - 1){
+			std::cerr << SYS_ERROR("recv");
+			removeClient(client);
+			return ;
+		}
+		else if (recvValue == 0){
+			sendResponse(client, "BadRequest");
+			return ;
+		}
+
+		if (!headerFullyRecieved(client)){
+			return ;
+		}
+		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
+			sendResponse(client, "Ok");
+			return ;
+		}
+	}
+	/* this part will only be reached if the request is chunked */
+	switch (recvChunks(client)){
+		case BadRequest:
+			sendResponse(client, "BadRequest");
+			return ;
+		case ChunkRecieved:
+			return ;
+		case Complete:
+			sendResponse(client, "Ok");
+		case recvError:
+			std::cerr << SYS_ERROR("recv");
+			removeClient(client);
+			return ;
+	}
+}
+
 
 Server::~Server() {
 	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
