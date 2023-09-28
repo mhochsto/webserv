@@ -34,7 +34,7 @@ class Request {
 		int parseHeader( std::string& header );
 		int 	validateAndSetRequestLine( std::string line );
 	public:
-		Request(t_client& client);
+		Request(t_client client);
 		~Request();
 	
 	bool        contains( std::string str ) const;

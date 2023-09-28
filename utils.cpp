@@ -54,3 +54,8 @@ std::string convertIPtoString(unsigned long ip){
     sstream << (int)(ip & 0xFF);
 	return sstream.str();
 }
+/* wip */
+void    print(printState state, std::string msg){
+    std::cout << msg << std::endl;
+    (void)state;
+}

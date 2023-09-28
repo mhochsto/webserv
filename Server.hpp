@@ -36,6 +36,8 @@ typedef struct s_client {
 	t_location location;
 	std::string header;
 	std::string body;
+	std::string chunk;
+	long chunkSizeLong;
 	chunkStatus chunkState;
 } t_client;
 
@@ -51,7 +53,7 @@ class Server {
 		void CreateServerSocket( t_server& server );
 		void run( void );
 		void addConnection( int serverFD );
-		void handleRequest ( t_client& client );
+		int handleRequest ( t_client& client );
 		void setConfig( t_client& client );
 		bool isServerSocket(int fd);
 		void removeClient( t_client& client );

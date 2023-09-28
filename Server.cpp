@@ -41,7 +41,10 @@ void Server::CreateServerSocket( t_server& server ){
 
 Server::Server( std::vector<t_server> serverConfig): m_serverConfig(serverConfig){
 	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+		print(Notification, "starting Server: " + it->hostname);
 		CreateServerSocket(*it);
+		print(Notification, "Server started Successfully: " + it->hostname);
+
 	}
 }
 
@@ -65,7 +68,9 @@ void Server::run( void ){
 			}
 			else if (m_sockets.at(i).revents != 0) {
 				if (m_sockets.at(i).revents & POLLIN) {
-					handleRequest(m_clients[m_sockets.at(i).fd]);
+					if (handleRequest(m_clients[m_sockets.at(i).fd])){
+						//m_sockets.at(i).revents = 0;
+					}
 				}
 		   }
 		}
@@ -95,6 +100,8 @@ void Server::addConnection( int serverFD ){
 		newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
 		setConfig(newClient);
 		m_clients[newClient.fd] = newClient;
+		newClient.chunkSizeLong = -1;
+		print(Notification, "new Client added (ip): " + newClient.ip);
 	} while (newClient.fd != -1);
 
 }
@@ -116,30 +123,38 @@ void Server::removeClient( t_client& client ){
 
 chunkStatus	Server::recvChunks(t_client& client){
 	char buffer[client.config.clientMaxBodySize];
-		std::memset(buffer, 0, sizeof(buffer));
-		ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
-		if (rd == 0){
-			return BadRequest;
+	std::memset(buffer, 0, sizeof(buffer));
+	ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
+	if (rd == 0){
+		return BadRequest;
+	}
+	else if (rd == -1){
+		return recvError;
+	}
+	else if (client.chunkSizeLong == -1){
+		client.chunk += buffer;
+		if (client.chunk.find("\r\n\r\n") == std::string::npos){
+			return ChunkRecieved;
 		}
-		if (rd == -1){
-			return recvError;
-		}
-		std::string sBuffer(buffer);
-		std::string chunkSizeAsString = sBuffer.substr(0, sBuffer.find("\r\n"));	
+		std::string chunkSizeAsString = client.chunk.substr(0, client.chunk.find("\r\n\r\n"));	
 		char *end = NULL;
-		long chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
+		client.chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
 		if (*end){
 			return BadRequest;
 		}
-		if (chunkSizeLong == 0){
-			return Complete;
-		}
-		sBuffer.erase(0, chunkSizeAsString.length() + 2); // "+ 2 for \r\n"
-		if ((long)sBuffer.length() - 2 != chunkSizeLong){
-			return BadRequest;
-		}
-		client.body.append(sBuffer);
-		return ChunkRecieved;
+	}
+
+	client.chunk.erase(0, client.chunk.find("\r\n") + 2);
+	if (client.chunkSizeLong == 0){
+		return Complete;
+	}
+	if (client.chunk.length() != (unsigned long)client.chunkSizeLong){
+		return BadRequest;
+	}
+	client.body += client.chunk;
+	client.chunk.clear();
+	client.chunkSizeLong = -1;
+	return ChunkRecieved;
 }
 
 ssize_t Server::recvHeader(t_client& client){
@@ -158,50 +173,62 @@ bool Server::headerFullyRecieved(t_client& client){
 }
 
 void Server::sendResponse( t_client& client, std::string status ){
+//	std::cout << client.header.length()  << std::endl;
+//	std::cout << "["<<client.header << client.body <<"]"<<std::endl;
+	std::cout << "out\n";
+	print(Notification, "recieved request from " + client.ip);
+	print(Notification, client.header.substr(0, client.header.find("\n")));
+	
 	if (status != "Ok"){
 		client.header = status;
 	}
 	Request request(client);
 	Response response(client, request);
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
+	
+	std::string respStr(response.returnResponse());
+	print(Notification, "Response sent to: " + client.ip);
+	print(Notification, respStr.substr(0, respStr.find("\n")));
+	
 	client.header.clear();
 	client.body.clear();
+	client.chunk.clear();
+	client.chunkSizeLong = -1;
 }
 
-void Server::handleRequest( t_client& client ){
+int Server::handleRequest( t_client& client ){
 	ssize_t recvValue;
 	if (!headerFullyRecieved(client)){
 		recvValue = recvHeader(client);
-		if (recvValue == - 1){
-			std::cerr << SYS_ERROR("recv");
-			removeClient(client);
-			return ;
+		if (recvValue == 0){
+			return 1;
 		}
-		else if (recvValue == 0){
-			sendResponse(client, "BadRequest");
-			return ;
+		if (recvValue == - 1){
+			removeClient(client);
+			return 1;
 		}
 		if (!headerFullyRecieved(client)){
-			return ;
+			return 1;
 		}
 		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
 			sendResponse(client, "Ok");
-			return ;
+			return 0;
 		}
 	}
+
 	/* this part will only be reached if the request is chunked */
 	switch (recvChunks(client)){
 		case BadRequest:
 			sendResponse(client, "BadRequest");
-			return ;
+			return 0;
 		case ChunkRecieved:
-			return ;
+			return 1;
 		case Complete:
 			sendResponse(client, "Ok");
-			return ;
+			return 0;
 		case recvError:
-			sendResponse(client, "MethodNotAllowed");
-			return ;
+			removeClient(client);
+			return 1;
 	}
 }
 

@@ -56,12 +56,12 @@ void Response::saveGetParam( std::string content ){
 }
 
 void Response::getResponse( Request& request ){
+
 	std::string path = m_client.config.root + request.getPath();
 	std::string resp;
 	std::fstream file;
 	std::string fileName;
 	std::string rawUrlParameter;
-	
 	/* save url parameters */
 	if (path.find_first_of('?') != std::string::npos){
 		rawUrlParameter = path.substr(path.find_first_of('?') + 1);
