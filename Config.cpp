@@ -93,7 +93,6 @@ void Config::addAutoindexLocation(std::string line, t_location& location){
 	else {
 		throw std::runtime_error(CONFIG_ERROR("invalid autoindex option"));
 	}
-
 }
 
 void Config::addIndexLocation(std::string line, t_location& location){
