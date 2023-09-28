@@ -14,6 +14,17 @@ Config::Config(std::string configFileName ){
 	std::fstream infile(configFileName.c_str());
 	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
 
+	
+
+	m_funcMap["listen"] = &Config::addListenServer;
+	m_funcMap["server_name"] = &Config::addServerNameServer;
+	m_funcMap["host"] = &Config::addHostServer;
+	m_funcMap["root"] = &Config::addRootServer;
+	m_funcMap["index"] = &Config::addIndexServer;
+	m_funcMap["error_page"] = &Config::addErrorPageServer;
+	m_funcMap["client_max_body_size"] = &Config::addClientMaxBodySize;
+
+
 	print(Notification, "parsing config file");
 	std::stringstream sstream;
 	sstream << infile.rdbuf();
@@ -25,7 +36,6 @@ Config::Config(std::string configFileName ){
 		}
 		catch(std::exception& e){
 			std::cerr << e.what() << std::endl;
-			break ;
 		};
 	}
 	print(Notification, "done parsing");
@@ -96,7 +106,42 @@ void Config::addIndexLocation(std::string line, t_location& location){
 	location.index = line;
 }
 
-void Config::addLocation(std::string newLocation, t_server& serv){
+void Config::addProxyLocation(std::string line, t_location& location) {
+	line = line.substr(line.find("proxy_pass") + 11);
+	line = line.substr(0, line.find_first_of(WHITESPACE));
+	if (line.at(line.length() - 1) == '/')
+		throw std::runtime_error(CONFIG_ERROR("trailing '/' not allowed for proxyLocation"));
+	if (line.at(0) == '/')
+		line.erase(0, 1);
+	location.proxyPass = line;
+}
+
+void Config::addCgiExtensionLocation(std::string line, t_location& location) {
+	line.erase(0, line.find_first_not_of(WHITESPACE));
+	line.erase(0, line.find_first_of(WHITESPACE));
+	line.erase(0, line.find_first_not_of(WHITESPACE));
+	std::stringstream sstream(line);
+	while (std::getline(sstream, line, ' ')){
+		if (line.at(0) != '.') throw std::runtime_error(CONFIG_ERROR("cgi extension need a '.' at the beginning"));
+		location.allowed_cgi_extension.push_back(line);
+	}
+}
+
+void Config::addMaxBodySizeLocation(std::string line, t_location& location) {
+	char *endptr;
+	
+	double dValue = std::strtod(validateValueFormat(line.substr(line.find_first_not_of(WHITESPACE))).c_str(), &endptr);
+	if (static_cast<int>(dValue) != dValue){
+		throw std::runtime_error(CONFIG_ERROR("clientMaxBodySize not in int range"));
+	}
+	if (*endptr || dValue < PORT_MIN || dValue > PORT_MAX){
+		throw std::runtime_error(CONFIG_ERROR("clientMaxBodySize out of bounds"));
+	}
+	location.clientMaxBodySize = (unsigned int)dValue;
+}
+
+
+void Config::addLocation(std::string newLocation, t_server& serv) {
 	std::stringstream sstream(newLocation.c_str());
 	std::string line;
 	t_location location;
@@ -125,10 +170,18 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 		keyWord = keyWord.substr(0, keyWord.find_first_of(WHITESPACE));
 		if (keyWord == "allow_methods")
 			addMethodsLocation(line.substr(line.find(keyWord) + keyWord.size()), location);
-		if (keyWord == "autoindex")
+		else if (keyWord == "autoindex")
 			addAutoindexLocation(line, location);
-		if (keyWord == "index")
+		else if (keyWord == "index")
 			addIndexLocation(line, location);
+		else if (keyWord == "proxy_pass")
+			addProxyLocation(line, location);
+		else if (keyWord == "allowed_cgi_extension"){
+			addCgiExtensionLocation(line, location);
+		}
+		else if (keyWord == "client_max_body_size"){
+			addMaxBodySizeLocation(line, location);
+		}
 	}
 	serv.locations[location.path] = location;
 }
@@ -136,15 +189,7 @@ void Config::addLocation(std::string newLocation, t_server& serv){
 void Config::fillServerStruct(std::string newServer, t_server& serv){
 	std::stringstream sstream(newServer);
 	std::string line;
-	std::map <std::string,funcPtr> funcMap;
 
-	funcMap["listen"] = &Config::addListenServer;
-	funcMap["server_name"] = &Config::addServerNameServer;
-	funcMap["host"] = &Config::addHostServer;
-	funcMap["root"] = &Config::addRootServer;
-	funcMap["index"] = &Config::addIndexServer;
-	funcMap["error_page"] = &Config::addErrorPageServer;
-	funcMap["client_max_body_size"] = &Config::addClientMaxBodySize;
 
 	while (std::getline(sstream, line)){
 		if (line.find_first_not_of(WHITESPACE) == std::string::npos)
@@ -158,8 +203,8 @@ void Config::fillServerStruct(std::string newServer, t_server& serv){
 		if (line.find_first_not_of(WHITESPACE) == std::string::npos)
 			break ;
 		line = line.substr(line.find_first_not_of(WHITESPACE));
-		if (funcMap.find(getFirstWord(line)) != funcMap.end()) {
-			(this->*funcMap[getFirstWord(line)])(line, serv);
+		if (m_funcMap.find(getFirstWord(line)) != m_funcMap.end()) {
+			(this->*m_funcMap[getFirstWord(line)])(line, serv);
 		}
 		else{
 			throw std::runtime_error(CONFIG_ERROR("wrong format"));
@@ -176,18 +221,12 @@ void Config::addServer(std::string& in){
 	while (newServer.find("location") != std::string::npos){
 		int locationPos = newServer.find_first_not_of(WHITESPACE, newServer.find("location") + std::strlen("location"));
 		std::string locName = newServer.substr(locationPos, newServer.find_first_not_of(WHITESPACE));
-		std::string newLocation;
-		try{
-			newLocation = getBlock("location", newServer);
-		}
-		catch (std::exception& e){
-			std::cerr << e.what() << std::endl;
-			break ;
-		}
+		std::string newLocation = getBlock("location", newServer);
 		addLocation(newLocation, serv);
 	}
 	newServer = newServer.substr(newServer.find('\n') + 1); 
 	newServer.resize(newServer.length() - 1);
+	
 	fillServerStruct(newServer, serv);
 	m_servers.push_back(serv);
 }

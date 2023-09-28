@@ -5,10 +5,12 @@
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(t_client client, Request& request ): m_client(client) {
+Response::Response(t_client& client, Request& request ): m_client(client) {
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
+	m_responseMap.insert(std::pair<std::string, funcPtr>("PUT", &Response::putResponse));
+
 	std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
 	(this->*it->second)(request);
 }
@@ -53,6 +55,35 @@ void Response::saveGetParam( std::string content ){
 	while (std::getline(ssContent, content, '&')) {
 		m_UrlParameter[content.substr(0, content.find_first_of('='))] = content.substr(content.find_first_of('=') + 1);
 	}
+}
+
+void Response::create404Response(void){
+	std::fstream file(m_client.config.errorPages["404"].c_str());	
+	if (!file){
+		throw std::runtime_error(SYS_ERROR("can't open source file"));
+	}
+	std::stringstream sstream;
+	sstream << file.rdbuf();
+	file.close();
+	createResponse("404 NotFound\n", sstream.str());
+}
+
+void Response::putResponse( Request& request ) {
+	std::string proxyPassPath = m_client.config.root + "/" + m_client.location.proxyPass;
+	if (access(proxyPassPath.c_str(), F_OK) == -1){
+		create404Response();
+		return ;
+	}
+
+	proxyPassPath.append("/" + request.getPath().substr(m_client.location.path.length()));
+
+	std::ofstream file(proxyPassPath.c_str(), std::ios::out | std::ios::trunc);
+	if (!file){
+		create404Response();
+		return ;
+	}
+	file << m_client.body;
+	createResponse("200 OK\n", "");
 }
 
 void Response::getResponse( Request& request ){
@@ -104,7 +135,7 @@ void Response::getResponse( Request& request ){
 		struct stat statbuf;
 		std::memset(&statbuf, 0 , sizeof(struct stat));
 		if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
-		if (S_ISDIR(statbuf.st_mode)){ // path is directory
+		if (S_ISDIR(statbuf.st_mode)){
 			if (m_client.location.autoIndex){
 				resp = "200 OK\n";
 				createResponse(resp, showDir(path));
@@ -134,6 +165,14 @@ void Response::postResponse( Request& request ){
 }
 
 void Response::deleteResponse( Request& request ){
+
+//	std::cout <<RED<<  << RESET<<std::endl;
+	if (remove(std::string(m_client.config.root + request.getPath()).c_str())  == 0){
+		createResponse("204 No Content\n", "");
+	}
+	else {
+		create404Response();
+	}
 	(void)request;
 }
 

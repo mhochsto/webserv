@@ -14,8 +14,8 @@
 
 # include "Error.hpp"
 
-# define ALLOWED_REQUESTS {"GET", "POST", "DELETE"}
-# define ALLOWED_REQUESTS_COUNT 3
+# define ALLOWED_REQUESTS {"GET", "POST", "DELETE", "PUT"}
+# define ALLOWED_REQUESTS_COUNT 4
 
 # define ALLOWED_DOMAIN_EXTENSIONS {".com", ".org", ".net", ".at", ".de"}
 # define ALLOWED_DOMAIN_EXTENSIONS_COUNT 5
@@ -34,6 +34,10 @@ typedef struct s_location {
     bool                        autoIndex;
     std::string                 index;
     std::string                 path;
+    std::string                 proxyPass;
+    unsigned int                clientMaxBodySize;
+    std::vector<std::string>    allowed_cgi_extension;
+
 } t_location;
 
 typedef struct s_server {
@@ -50,11 +54,11 @@ typedef struct s_server {
 
 class Config{
     private:
+        typedef void (Config::*funcPtr)(std::string, t_server&);
         std::string             m_configFileContent;
         std::vector<t_server>   m_servers;
+        std::map <std::string,funcPtr> m_funcMap;
 
-
-        typedef void (Config::*funcPtr)(std::string, t_server&);
     public:
         Config( std::string configFileName );
         Config( const Config &cpy);
@@ -71,6 +75,9 @@ class Config{
         void        addMethodsLocation(std::string line, t_location& location);
         void        addAutoindexLocation(std::string line, t_location& location);
         void        addIndexLocation(std::string line, t_location& location);
+        void        addProxyLocation(std::string line, t_location& location);
+        void        addMaxBodySizeLocation(std::string line, t_location& location);
+        void        addCgiExtensionLocation(std::string line, t_location& location); 
 
         void	    addServerNameServer(std::string line, t_server& serv);
         void	    addHostServer(std::string line, t_server& serv);

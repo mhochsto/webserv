@@ -175,7 +175,6 @@ bool Server::headerFullyRecieved(t_client& client){
 void Server::sendResponse( t_client& client, std::string status ){
 //	std::cout << client.header.length()  << std::endl;
 //	std::cout << "["<<client.header << client.body <<"]"<<std::endl;
-	std::cout << "out\n";
 	print(Notification, "recieved request from " + client.ip);
 	print(Notification, client.header.substr(0, client.header.find("\n")));
 	
@@ -183,6 +182,7 @@ void Server::sendResponse( t_client& client, std::string status ){
 		client.header = status;
 	}
 	Request request(client);
+
 	Response response(client, request);
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
 	
@@ -211,6 +211,7 @@ int Server::handleRequest( t_client& client ){
 			return 1;
 		}
 		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
+			client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
 			sendResponse(client, "Ok");
 			return 0;
 		}
