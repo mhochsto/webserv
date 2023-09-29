@@ -1,5 +1,5 @@
 #include "utils.hpp"
-
+#include "Error.hpp"
 /* used to sort biggest to smallest */
 static bool compareLength(std::string& str1, std::string& str2){ return (str1.length() > str2.length());}
 

@@ -10,11 +10,11 @@
 # include <cstring>
 # include <cstdlib>
 # include <set>
+# include <limits>
 # include <unistd.h> // access() && dup2
 
-# include "Error.hpp"
 
-# define ALLOWED_REQUESTS {"GET", "POST", "DELETE", "PUT"}
+# define ALLOWED_REQUESTS {"GET", "POST", "DELETE", "PUT", NULL}
 # define ALLOWED_REQUESTS_COUNT 4
 
 # define ALLOWED_DOMAIN_EXTENSIONS {".com", ".org", ".net", ".at", ".de"}
@@ -28,70 +28,149 @@
 
 #define CGI_PATH "./website/cgi-bin"
 
+# include "DataStructs.hpp"
+# include "DefaultConfig.hpp"
+# include "utils.hpp"
+# include "Error.hpp"
 
-typedef struct s_location {
-    std::vector<std::string>    allowed_methods;
-    bool                        autoIndex;
-    std::string                 index;
-    std::string                 path;
-    std::string                 proxyPass;
-    unsigned int                clientMaxBodySize;
-    std::vector<std::string>    allowed_cgi_extension;
+class configException : public std::exception
+{
+	private:
+		std::string msg;
+   public:
+		configException(std::string errorMsg): msg(errorMsg){}
+		~configException() throw () {} 
+		const char* what() const throw() { return msg.c_str(); }
+};
 
-} t_location;
-
-typedef struct s_server {
-    int                                 port;
-    std::set<std::string>               serverName;
-    std::string                         hostname;
-    int                                 clientMaxBodySize;
-    std::string                         root;
-    std::string                         index;
-    std::map<std::string, std::string>  errorPages;
-    std::map<std::string, t_location>   locations;
-    int                                 fd;
-} t_server;
 
 class Config{
-    private:
-        typedef void (Config::*funcPtr)(std::string, t_server&);
-        std::string             m_configFileContent;
-        std::vector<t_server>   m_servers;
-        std::map <std::string,funcPtr> m_funcMap;
+	private:
+		typedef void (Config::*serverFuncPtr)(std::string, t_server&);
+		typedef void (Config::*locationFuncPtr)(std::string, void *);
 
-    public:
-        Config( std::string configFileName );
-        Config( const Config &cpy);
-        ~Config();
+		std::vector<t_server>   m_servers;
+		std::map< std::string, locationFuncPtr > m_locationFunctions;
+		std::map< std::string, serverFuncPtr> m_serverFunctions; 
 
-        void        addServer(std::string& in);
-        void        addLocation(std::string newLocation, t_server& serv);
-        std::string getBlock( std::string type, std::string& in );
-        void        fillServerStruct(std::string newServer, t_server& serv);
+	public:
+		Config( std::string configFileName );
+		~Config();
 
-        std::string validateValueFormat(std::string str);
-        void        validateServerName(std::string domain);
-
-        void        addMethodsLocation(std::string line, t_location& location);
-        void        addAutoindexLocation(std::string line, t_location& location);
-        void        addIndexLocation(std::string line, t_location& location);
-        void        addProxyLocation(std::string line, t_location& location);
-        void        addMaxBodySizeLocation(std::string line, t_location& location);
-        void        addCgiExtensionLocation(std::string line, t_location& location); 
-
-        void	    addServerNameServer(std::string line, t_server& serv);
-        void	    addHostServer(std::string line, t_server& serv);
-        void	    addClientMaxBodySize(std::string line, t_server& serv);
-        void	    addErrorPageServer(std::string line, t_server& serv);
-        void	    addListenServer(std::string line, t_server& serv);
-        
-        /* didn't use absolut path since getcwd is forbidden */
-        void	    addRootServer(std::string line, t_server& serv);
-        void	    addIndexServer(std::string line, t_server& serv);
-
-        std::vector<t_server>   getServerConfig( void );
+		void                        addLocation(std::string newLocation, t_server& serv);
+		void                        addServer(std::string& in);
+		void                        defaultConfigServer(t_server &serv);
+		void						addtoLocationIfAllowed(std::string& line, std::map< std::string, std::pair<locationFuncPtr, void *> >& locationFunctions);
 
 
+		/* helpers */
+		std::vector<std::string>    convertStringtoVector(std::string str, std::string delimiter);
+		void                        removeFirstWord(std::string& str);
+		std::string                 getBlock( std::string type, std::string& in );
+		void                        fillServerStruct(std::string newServer, t_server& serv);
+		void                        formatPath(std::string& str);
+
+		std::vector<t_server>       getServerConfig( void );
+
+
+		/****************************************************************************/
+		/*	Since alot of keywords can be present in both, server and location,		*/
+		/*  we use Templates to reuse the functions.	 							*/
+		/*	The FunctionWrapper is necessary to save all functions in a Map.		*/
+		/*	Function templates need T, but since we cannot use T as Map Value we 	*/
+		/*  use a void * to pass the pointer to the value we want to set 			*/
+		/****************************************************************************/
+		template <typename T>
+		class FunctionWrapper {
+			typedef void (Config::*FuncPtr)(std::string, T *);
+			typedef void (Config::*retPtr)(std::string, void *);
+			private:
+				FuncPtr m_ptr;
+			public:
+				FunctionWrapper(FuncPtr ptr): m_ptr(ptr) {}
+				retPtr getPtr(void) {
+					return (retPtr)m_ptr;
+				}
+		};
+
+		template< typename T>
+		void addIndexLocation(std::string line, T *to_set){
+			*to_set = line;
+			removeFirstWord(line);
+			if (!line.empty()){
+				throw configException("invalid index in location: [" + line + "]");
+			}
+		}
+
+		template< typename T>
+		void addAllowedMethodsLocation(std::string line, T *to_set ){
+			const char *allowedRequest[] = ALLOWED_REQUESTS;
+
+			*to_set = convertStringtoVector(line, WHITESPACE);
+			if ((*to_set).size() == 0){
+				throw configException("no methods listed: " + line);
+			}
+			for(std::vector<std::string>::iterator it = (*to_set).begin(); it != (*to_set).end(); ++it ) {
+				bool valid = false;
+				for (unsigned int i = 0; allowedRequest[i]; ++i){
+					if (*it == allowedRequest[i]){
+						valid = true;
+						break ;
+					}
+				}
+				if (valid == false){
+					throw configException("invalid Method: [" + *it + "]");
+				}
+				valid = false;
+			}
+		}
+
+		template< typename T>
+		void addProxyPassLocation(std::string line, T *to_set ){
+			*to_set = line.substr(0, line.find_first_of(WHITESPACE));
+			line.erase(0, (*to_set).length() + 1);
+			if (!line.empty()){
+				throw configException("invalid proxy_pass: [" + line + "]");
+			}
+			formatPath(*to_set);
+		}
+
+		template< typename T>
+		void addAllowedCgiExtensionLocation(std::string line, T *to_set ){
+			*to_set = convertStringtoVector(line, WHITESPACE);
+			if ((*to_set).size() == 0){
+				throw configException("no extensions listed: " + line);
+			}
+
+			for (unsigned long i = 0; i < (*to_set).size(); ++i){
+				if ((*to_set).at(i).at(0) != '.'){
+					throw configException("invalid cgi extension (needs to start with '.'): " + (*to_set).at(i));
+				}
+			}
+		}
+
+		template< typename T>
+		void addAutoIndexLocation(std::string line, T *to_set ){
+			if (line == "off") {
+				*to_set = false;
+			}
+			else if (line == "on") {
+				*to_set = true;
+			}
+			else {
+				throw configException("invalid auto_index_option: " + line);
+			}
+		}
+
+		template< typename T>
+		void addClientMaxBodySizeLocation(std::string line, T *to_set ){
+			char *endptr;
+			double dValue = std::strtod(line.c_str(), &endptr);
+			if (*endptr || dValue < 0 || dValue > std::numeric_limits<int>::max()){
+				throw configException("invalid client_max_body_size in location: [" + line + "]");
+			}
+			*to_set = dValue;
+		}
 
 };
 
