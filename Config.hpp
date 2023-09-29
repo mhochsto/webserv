@@ -45,6 +45,7 @@ typedef struct s_server {
     std::string                         index;
     std::map<std::string, std::string>  errorPages;
     std::map<std::string, t_location>   locations;
+    int                                 fd;
 } t_server;
 
 class Config{

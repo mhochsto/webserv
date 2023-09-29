@@ -18,11 +18,9 @@ class Request;
 class Response {
     private:
         std::string m_response;
-        std::string m_clientIP;
+        t_client    m_client;
         int         m_responseSize;
-        std::map<std::string, std::string> m_UrlParameter;
-        t_location  m_location;
-        t_server    m_serv;    
+        std::map<std::string, std::string> m_UrlParameter; 
         typedef void (Response::*funcPtr)(Request&);
         
         std::map<std::string, funcPtr> m_responseMap;
@@ -35,8 +33,7 @@ class Response {
         void createResponse(std::string rspType, std::string file);
         void cgiResponse( std::string path, Request& request, std::string rawUrlParameter );
     public:
-        std::string getClientAddr( void );
-        Response( Request& request, t_server serv, t_location location, std::string clientIP );
+        Response( t_client client, Request& request );
         const char *returnResponse( void );
         int  getSize( void );
 

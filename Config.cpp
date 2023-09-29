@@ -14,6 +14,7 @@ Config::Config(std::string configFileName ){
 	std::fstream infile(configFileName.c_str());
 	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
 
+	print(Notification, "parsing config file");
 	std::stringstream sstream;
 	sstream << infile.rdbuf();
 	std::string input = sstream.str();
@@ -27,8 +28,9 @@ Config::Config(std::string configFileName ){
 			break ;
 		};
 	}
+	print(Notification, "done parsing");
 
-}
+}	
 
 Config::~Config(){}
 
@@ -179,6 +181,7 @@ void Config::addServer(std::string& in){
 			newLocation = getBlock("location", newServer);
 		}
 		catch (std::exception& e){
+			std::cerr << e.what() << std::endl;
 			break ;
 		}
 		addLocation(newLocation, serv);
