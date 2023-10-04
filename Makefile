@@ -5,10 +5,10 @@ CFLAGS := -Wall -Werror -Wextra -std=c++98 -gdwarf-4
 CC := c++
 
 SRC :=	main.cpp		\
-		Server.cpp		\
-		Request.cpp		\
 		Config.cpp		\
 		utils.cpp		\
+		Server.cpp		\
+		Request.cpp		\
 		Response.cpp	\
 		CgiHandler.cpp
 

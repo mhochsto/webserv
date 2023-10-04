@@ -3,9 +3,10 @@
 /* used to sort biggest to smallest */
 static bool compareLength(std::string& str1, std::string& str2){ return (str1.length() > str2.length());}
 
-std::string closestMatchingLocation( std::map<std::string, t_location> locMap, std::string path){
+
+std::string closestMatchingLocation( vectorMapMap locMap, std::string path){
     std::vector<std::string> locMapNames;
-    for (std::map<std::string, t_location>::iterator it = locMap.begin(); it != locMap.end(); it++){
+    for (vectorMapMap::iterator it = locMap.begin(); it != locMap.end(); it++){
         locMapNames.push_back(it->first);
     }
     path = "." + path;
@@ -58,4 +59,27 @@ std::string convertIPtoString(unsigned long ip){
 void    print(printState state, std::string msg){
     std::cout << msg << std::endl;
     (void)state;
+}
+
+std::vector<std::string> convertStringtoVector(std::string str, std::string delimiter){
+	std::vector<std::string> v;
+	do {
+		str.erase(0, str.find_first_not_of(delimiter));
+		v.push_back(str.substr(0, str.find_first_of(delimiter)));
+		str.erase(0, v.back().length() + 1);
+	} while (!str.empty());
+	return v;
+}
+
+void	removeFirstWord(std::string& str) {
+	str.erase(0, str.find_first_not_of(WHITESPACE));
+	str.erase(0, str.find_first_of(WHITESPACE));
+}
+
+/* remove one trailing '/' && add one '/' if necessary -> perfect outcome == "/str" */
+void formatPath(std::string& str){
+	if (str != "/" && str.at(str.length() - 1) == '/')
+		str.resize(str.length() - 1);
+	if (str.at(0) != '/')
+		str = "/"+ str;
 }

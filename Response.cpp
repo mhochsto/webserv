@@ -21,7 +21,7 @@ std::string Response::showDir(std::string path){
 	DIR *dir = opendir(path.c_str());
 	if (!dir) throw std::runtime_error(SYS_ERROR("opendir"));
 	struct dirent *directory;
-	path = path.erase(path.find(m_client.config.root), m_client.config.root.length());
+	path = path.erase(path.find(m_client.config["root"]), m_client.config["root"].begin()->length());
 
 	file << "<!DOCTYPE html>\n<html>\n	<head>\n		<title>Directory Overview</title>\n	</head>\n	<body>\n		<p>List of files:</p>\n		<dir>\n";
 

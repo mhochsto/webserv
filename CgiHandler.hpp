@@ -21,7 +21,7 @@ class CgiHandler {
         std::string getPathInfo(std::string path);
 
     public:
-        CgiHandler(Response& response ,Request& request, t_server serv, std::string path, std::string rawUrlParameter);
+        CgiHandler(Response& response ,Request& request, t_config serv, std::string path, std::string rawUrlParameter);
         void execute( void );
         std::string getOutput( void );
 };

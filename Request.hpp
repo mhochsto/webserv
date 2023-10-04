@@ -23,7 +23,7 @@
 
 class Request {
 	private:
-		t_server		m_config;
+		t_config		m_config;
 		t_client&		m_client;
 		std::string     m_requestType;
 		std::string     m_requestPath;

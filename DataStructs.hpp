@@ -1,28 +1,57 @@
 #ifndef DATASTRUCTS_HPP
 # define DATASTRUCTS_HPP
 
-typedef struct s_location {
-    bool                        autoIndex;
-    ssize_t                     clientMaxBodySize;
-    std::string                 index;
-    std::string                 path;
-    std::string                 proxyPass;
-    std::vector<std::string>    allowed_methods;
-    std::vector<std::string>    allowed_cgi_extension;
+#include "DefaultConfig.hpp"
 
-} t_location;
+typedef std::map<std::string, std::vector<std::string> > vectorMap;
+typedef std::map<std::string, vectorMap > vectorMapMap; 
+typedef std::map<std::string, std::string> stringMap;
 
-typedef struct s_server {
-    int                                 port;
-    std::set<std::string>               serverName;
-    std::string                         hostname;
-    ssize_t                             clientMaxBodySize;
-    std::string                         root;
-    std::string                         index;
-    std::map<std::string, std::string>  errorPages;
-    std::map<std::string, t_location>   locations;
+enum chunkStatus {BadRequest,ChunkRecieved, Complete, recvError };
+
+typedef struct s_config {
+
+    /* Default (& minimal) Input for Server-config. */
+    /* Macros defined in DefaultConfig.hpp */
+    s_config() {
+	    Data["port"].push_back(SERVER_LISTEN);
+	    Data["hostname"].push_back(SERVER_HOST);
+	    Data["client_max_body_size"].push_back(SERVER_CLIENT_MAX_BODY_SIZE);
+	    Data["root"].push_back(SERVER_ROOT);
+	    Data["index"].push_back(SERVER_INDEX);
+	    Data["400"].push_back(SERVER_ERROR_PAGE_400);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_400);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_405);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_500);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_502);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_503);
+	    Data["error_page"].push_back(SERVER_ERROR_PAGE_500);
+        fd = 0;
+    }
+
+    vectorMap							redirects;
+    vectorMap                           errorPages;
+    vectorMap                           Data;
+    vectorMapMap                        locations;
     int                                 fd;
-} t_server;
+} t_config;
 
+typedef struct s_client {
+	s_client(){
+		fd = 0;
+		serverFD = 0;
+		chunkSizeLong = 0;
+	}
+	int fd;
+	int serverFD;
+	std::string ip;
+	std::string header;
+	std::string body;
+	std::string chunk;
+	t_config config;
+	vectorMap location;
+	long chunkSizeLong;
+	chunkStatus chunkState;
+} t_client;
 
 #endif

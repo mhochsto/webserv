@@ -24,7 +24,7 @@ we set REMOTE_HOST to REMOTE_ADDR by default.
 Overview of available Variables:
 https://www6.uniovi.es/~antonio/ncsa_httpd/cgi/env.html
 */
-CgiHandler::CgiHandler(Response& response ,Request& request, t_server serv, std::string path, std::string rawUrlParameter): m_path(path){
+CgiHandler::CgiHandler(Response& response ,Request& request, t_config serv, std::string path, std::string rawUrlParameter): m_path(path){
 
     std::stringstream ssport;
     ssport << serv.port;

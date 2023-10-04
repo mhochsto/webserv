@@ -5,8 +5,8 @@
 
 int main(int argc, char **argv) {
     Config config("webserv.config");
-    Server webserv(config.getServerConfig());
-    webserv.run();
+   // Server webserv(config.getServerConfig());
+    //webserv.run();
     return 0;
 
     (void)argc;
