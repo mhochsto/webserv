@@ -24,7 +24,7 @@ void Server::CreateServerSocket( t_config& server ){
 	sockaddr_in serverAddress;
 	std::memset(&serverAddress, 0, sizeof(serverAddress));
 	serverAddress.sin_family = AF_INET;
-	serverAddress.sin_port = htons(std::atoi(server.Data["listen"].begin()->c_str()));
+	serverAddress.sin_port = htons(server.port);
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
 
 	if (bind(serverSocket.fd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
@@ -41,9 +41,9 @@ void Server::CreateServerSocket( t_config& server ){
 
 Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		print(Notification, "starting Server: " + *it->Data["hostname"].begin());
+		print(Notification, "starting Server: " + *it->serverName.begin());
 		CreateServerSocket(*it);
-		print(Notification, "Server started Successfully: " + *it->Data["hostname"].begin());
+		print(Notification, "Server started Successfully: " + *it->serverName.begin());
 	}
 }
 
@@ -121,7 +121,7 @@ void Server::removeClient( t_client& client ){
 }
 
 chunkStatus	Server::recvChunks(t_client& client){
-	char buffer[std::atoi(client.config.Data["client_max_body_size"].begin()->c_str())];
+	char buffer[client.location.clientMaxBodySize];
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
 	if (rd == 0){
@@ -157,7 +157,7 @@ chunkStatus	Server::recvChunks(t_client& client){
 }
 
 ssize_t Server::recvHeader(t_client& client){
-	char c_buffer[HTTP_HEADER_LIMIT + std::atoi(client.config.Data["client_max_body_size"].begin()->c_str())];
+	char c_buffer[HTTP_HEADER_LIMIT + client.location.clientMaxBodySize];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
 	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
 	if (readBytes <= 0){

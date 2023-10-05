@@ -4,9 +4,9 @@
 static bool compareLength(std::string& str1, std::string& str2){ return (str1.length() > str2.length());}
 
 
-std::string closestMatchingLocation( vectorMapMap locMap, std::string path){
+std::string closestMatchingLocation( locationMap locMap, std::string path){
     std::vector<std::string> locMapNames;
-    for (vectorMapMap::iterator it = locMap.begin(); it != locMap.end(); it++){
+    for (locationMap::iterator it = locMap.begin(); it != locMap.end(); it++){
         locMapNames.push_back(it->first);
     }
     path = "." + path;
@@ -39,9 +39,16 @@ std::string timestamp(void){
 }
 
 
-std::string getFirstWord(std::string str){
-	str = str.substr(str.find_first_not_of(WHITESPACE));
-	return (str.substr(0, str.find_first_of(WHITESPACE)));
+/* remove preceding Whitespace, first word and trailing whitespace from str */
+/* return first Word as new string*/
+std::string getFirstWord(std::string& str) {
+	if (str.find_first_of(WHITESPACE) == 0){
+		str.erase(0, str.find_first_not_of(WHITESPACE));
+	}
+	std::string word = str.substr(0, str.find_first_of(WHITESPACE));
+	str.erase(0, str.find_first_of(WHITESPACE));
+	str.erase(0, str.find_first_not_of(WHITESPACE));	
+	return (word);
 }
 
 std::string convertIPtoString(unsigned long ip){

@@ -48,7 +48,9 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_config serv, std:
     	m_env["HTTP_ACCEPT"] = request.get("Accept");
 	}
 	if (request.contains("User-Agent")){
-    	m_env["HTTP_USER_AGENT"] = getFirstWord(request.get("User-Agent"));
+		std::string userAgent = request.get("User-Agent");
+		getFirstWord(userAgent);
+    	m_env["HTTP_USER_AGENT"] = userAgent;
 	}
 	(void)response;
 	execute();

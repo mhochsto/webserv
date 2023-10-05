@@ -21,7 +21,7 @@ std::string Response::showDir(std::string path){
 	DIR *dir = opendir(path.c_str());
 	if (!dir) throw std::runtime_error(SYS_ERROR("opendir"));
 	struct dirent *directory;
-	path = path.erase(path.find(m_client.config["root"]), m_client.config["root"].begin()->length());
+	path = path.erase(path.find(m_client.config.root), m_client.config.root.length());
 
 	file << "<!DOCTYPE html>\n<html>\n	<head>\n		<title>Directory Overview</title>\n	</head>\n	<body>\n		<p>List of files:</p>\n		<dir>\n";
 
@@ -88,7 +88,7 @@ void Response::putResponse( Request& request ) {
 
 void Response::getResponse( Request& request ){
 
-	std::string path = m_client.config.root + request.getPath();
+	std::string path = "." + m_client.config.root + request.getPath();
 	std::string resp;
 	std::fstream file;
 	std::string fileName;
@@ -117,19 +117,19 @@ void Response::getResponse( Request& request ){
 	}
 	else if (request.getPath() == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
-		fileName = m_client.config.errorPages["405"];
+		fileName = m_client.config.root + m_client.config.errorPages["405"];
 	}
 	else if (request.getPath() == "BadRequest"){
 		resp = "400 Bad Request\n";
-		fileName = m_client.config.errorPages["400"];
+		fileName = m_client.config.root + m_client.config.errorPages["400"];
 	}
 	else if (access(path.c_str(), F_OK) == -1){
 		resp = "404 NotFound\n";
-		fileName = m_client.config.errorPages["404"];
+		fileName = m_client.config.root + m_client.config.errorPages["404"];
 	}
 	else if (access(path.c_str(), R_OK) == -1){
 		resp = "403 Forbidden\n";
-		fileName = m_client.config.errorPages["403"];
+		fileName = m_client.config.root + m_client.config.errorPages["403"];
 	}
 	else {
 		struct stat statbuf;
@@ -142,7 +142,7 @@ void Response::getResponse( Request& request ){
 				return ;
 			} else{
 				resp = "403 Forbidden\n";
-				fileName = m_client.config.errorPages["403"];
+				fileName = m_client.config.root + m_client.config.errorPages["403"];
 			}
 		}
 		else {
@@ -150,6 +150,7 @@ void Response::getResponse( Request& request ){
 			fileName = path;
 		}
 	}
+	fileName = "." + fileName;
 	file.open(fileName.c_str());	
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
