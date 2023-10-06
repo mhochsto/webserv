@@ -49,8 +49,7 @@ int Request::validateAndSetRequestLine( std::string line ) {
 		m_requestPath = "HTTPVersionNotSupported";
 		m_requestType = "GET";
 	}
-	m_client.location = m_config.locations[getLocationName()];
-
+	m_client.location = m_config.locations[getLocationName()];	
 	bool valid = false;
 	for (unsigned long i = 0; i < m_client.location.allowedMethods.size(); i++){
 		if (m_requestType == m_client.location.allowedMethods.at(i)){

@@ -43,8 +43,6 @@ Config::Config(std::string configFileName ){
 	}
 }
 
-
-
 Config::~Config(){}
 
 std::string Config::getBlock( std::string type, std::string& in ){

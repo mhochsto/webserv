@@ -9,7 +9,6 @@ std::string closestMatchingLocation( locationMap locMap, std::string path){
     for (locationMap::iterator it = locMap.begin(); it != locMap.end(); it++){
         locMapNames.push_back(it->first);
     }
-    path = "." + path;
     std::sort(locMapNames.begin(), locMapNames.end(), compareLength);
     do {
         for (std::vector<std::string>::iterator it = locMapNames.begin(); it != locMapNames.end(); it++){
@@ -19,7 +18,7 @@ std::string closestMatchingLocation( locationMap locMap, std::string path){
         }
         path.erase(path.find_last_of('/'));
         if (path == "."){
-            return "./";
+            return "/";
         }
     } while (!path.empty());
     return path;

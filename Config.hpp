@@ -58,11 +58,10 @@ class Config{
 
 	template <typename T>
 	static void addIndex(std::string line, T& set){
-		removeFirstWord(line);
+		set.index = getFirstWord(line);
 		if (!line.empty()){
 			throw configException("invalid index in: [" + line + "]");
 		}
-		set.index = line;
 	}
 
 	template <typename T>
