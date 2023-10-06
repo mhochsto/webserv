@@ -5,7 +5,7 @@
 # include "Error.hpp"
 # include "Config.hpp"
 
-void Server::CreateServerSocket( t_server& server ){
+void Server::CreateServerSocket( t_config& server ){
 	pollfd	serverSocket;
 	std::memset(&serverSocket, 0, sizeof(serverSocket));
 
@@ -39,12 +39,11 @@ void Server::CreateServerSocket( t_server& server ){
 	server.fd = serverSocket.fd;
 }
 
-Server::Server( std::vector<t_server> serverConfig): m_serverConfig(serverConfig){
-	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		print(Notification, "starting Server: " + it->hostname);
+Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
+	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+		print(Notification, "starting Server: " + *it->serverName.begin());
 		CreateServerSocket(*it);
-		print(Notification, "Server started Successfully: " + it->hostname);
-
+		print(Notification, "Server started Successfully: " + *it->serverName.begin());
 	}
 }
 
@@ -107,7 +106,7 @@ void Server::addConnection( int serverFD ){
 }
 
 void Server::setConfig(t_client& client){
-	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
 		if (it->fd == client.serverFD)
 			client.config = *it;
 	}
@@ -122,7 +121,7 @@ void Server::removeClient( t_client& client ){
 }
 
 chunkStatus	Server::recvChunks(t_client& client){
-	char buffer[client.config.clientMaxBodySize];
+	char buffer[client.location.clientMaxBodySize];
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
 	if (rd == 0){
@@ -158,7 +157,7 @@ chunkStatus	Server::recvChunks(t_client& client){
 }
 
 ssize_t Server::recvHeader(t_client& client){
-	char c_buffer[HTTP_HEADER_LIMIT + client.config.clientMaxBodySize];
+	char c_buffer[HTTP_HEADER_LIMIT + client.location.clientMaxBodySize];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
 	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
 	if (readBytes <= 0){
@@ -173,16 +172,14 @@ bool Server::headerFullyRecieved(t_client& client){
 }
 
 void Server::sendResponse( t_client& client, std::string status ){
-//	std::cout << client.header.length()  << std::endl;
-//	std::cout << "["<<client.header << client.body <<"]"<<std::endl;
-	std::cout << "out\n";
 	print(Notification, "recieved request from " + client.ip);
 	print(Notification, client.header.substr(0, client.header.find("\n")));
-	
+
 	if (status != "Ok"){
 		client.header = status;
 	}
 	Request request(client);
+
 	Response response(client, request);
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
 	
@@ -211,6 +208,7 @@ int Server::handleRequest( t_client& client ){
 			return 1;
 		}
 		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
+			client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
 			sendResponse(client, "Ok");
 			return 0;
 		}
@@ -233,7 +231,7 @@ int Server::handleRequest( t_client& client ){
 }
 
 Server::~Server() {
-	for (std::vector<t_server>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
 		close(it->fd);
 	}
 }

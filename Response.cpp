@@ -5,10 +5,12 @@
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(t_client client, Request& request ): m_client(client) {
+Response::Response(t_client& client, Request& request ): m_client(client) {
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
+	m_responseMap.insert(std::pair<std::string, funcPtr>("PUT", &Response::putResponse));
+
 	std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
 	(this->*it->second)(request);
 }
@@ -55,9 +57,38 @@ void Response::saveGetParam( std::string content ){
 	}
 }
 
+void Response::create404Response(void){
+	std::fstream file(m_client.config.errorPages["404"].c_str());	
+	if (!file){
+		throw std::runtime_error(SYS_ERROR("can't open source file"));
+	}
+	std::stringstream sstream;
+	sstream << file.rdbuf();
+	file.close();
+	createResponse("404 NotFound\n", sstream.str());
+}
+
+void Response::putResponse( Request& request ) {
+	std::string proxyPassPath = m_client.config.root + "/" + m_client.location.proxyPass;
+	if (access(proxyPassPath.c_str(), F_OK) == -1){
+		create404Response();
+		return ;
+	}
+
+	proxyPassPath.append("/" + request.getPath().substr(m_client.location.path.length()));
+
+	std::ofstream file(proxyPassPath.c_str(), std::ios::out | std::ios::trunc);
+	if (!file){
+		create404Response();
+		return ;
+	}
+	file << m_client.body;
+	createResponse("200 OK\n", "");
+}
+
 void Response::getResponse( Request& request ){
 
-	std::string path = m_client.config.root + request.getPath();
+	std::string path = "." + m_client.config.root + request.getPath();
 	std::string resp;
 	std::fstream file;
 	std::string fileName;
@@ -69,15 +100,14 @@ void Response::getResponse( Request& request ){
 		path.erase(path.find_first_of('?'));
 	}
 	/* set Path for homepage / location to index if available */
-	if (path == m_client.config.root + "/"){
+	if (path == "." + m_client.config.root + "/"){
 		path.append(m_client.location.index.empty() ? m_client.config.index : m_client.location.index);
 	}
-
 	/* Pick response Code and Filename */
 	if (!std::strncmp(path.c_str(), CGI_PATH, std::strlen(CGI_PATH))){
 		if (access(path.c_str(), X_OK) == -1){
 			resp = "403 Forbidden\n";
-			fileName = m_client.config.errorPages["403"];
+			fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
 		}
 		else {
 			cgiResponse(path, request, rawUrlParameter);
@@ -86,32 +116,32 @@ void Response::getResponse( Request& request ){
 	}
 	else if (request.getPath() == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
-		fileName = m_client.config.errorPages["405"];
+		fileName = "." +m_client.config.root + m_client.config.errorPages["405"];
 	}
 	else if (request.getPath() == "BadRequest"){
 		resp = "400 Bad Request\n";
-		fileName = m_client.config.errorPages["400"];
+		fileName = "." +m_client.config.root + m_client.config.errorPages["400"];
 	}
 	else if (access(path.c_str(), F_OK) == -1){
 		resp = "404 NotFound\n";
-		fileName = m_client.config.errorPages["404"];
+		fileName = "." +m_client.config.root + m_client.config.errorPages["404"];
 	}
 	else if (access(path.c_str(), R_OK) == -1){
 		resp = "403 Forbidden\n";
-		fileName = m_client.config.errorPages["403"];
+		fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
 	}
 	else {
 		struct stat statbuf;
 		std::memset(&statbuf, 0 , sizeof(struct stat));
 		if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
-		if (S_ISDIR(statbuf.st_mode)){ // path is directory
+		if (S_ISDIR(statbuf.st_mode)){
 			if (m_client.location.autoIndex){
 				resp = "200 OK\n";
 				createResponse(resp, showDir(path));
 				return ;
 			} else{
 				resp = "403 Forbidden\n";
-				fileName = m_client.config.errorPages["403"];
+				fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
 			}
 		}
 		else {
@@ -134,6 +164,14 @@ void Response::postResponse( Request& request ){
 }
 
 void Response::deleteResponse( Request& request ){
+
+//	std::cout <<RED<<  << RESET<<std::endl;
+	if (remove(std::string(m_client.config.root + request.getPath()).c_str())  == 0){
+		createResponse("204 No Content\n", "");
+	}
+	else {
+		create404Response();
+	}
 	(void)request;
 }
 

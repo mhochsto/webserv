@@ -23,8 +23,8 @@
 
 class Request {
 	private:
-		t_server		m_config;
-		t_client		m_client;
+		t_config		m_config;
+		t_client&		m_client;
 		std::string     m_requestType;
 		std::string     m_requestPath;
 		std::string     m_requestHttpVersion;
@@ -34,7 +34,7 @@ class Request {
 		int parseHeader( std::string& header );
 		int 	validateAndSetRequestLine( std::string line );
 	public:
-		Request(t_client client);
+		Request(t_client& client);
 		~Request();
 	
 	bool        contains( std::string str ) const;

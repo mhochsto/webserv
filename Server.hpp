@@ -26,31 +26,17 @@
 
 class Config;
 
-enum chunkStatus {BadRequest,ChunkRecieved, Complete, recvError };
-
-typedef struct s_client {
-	int fd;
-	int serverFD;
-	std::string ip;
-	t_server config;
-	t_location location;
-	std::string header;
-	std::string body;
-	std::string chunk;
-	long chunkSizeLong;
-	chunkStatus chunkState;
-} t_client;
 
 class Server {
 	private:
 		std::vector<pollfd> 	m_sockets;
-		std::vector<t_server>	m_serverConfig;
+		std::vector<t_config>	m_serverConfig;
 		std::map<int, t_client> m_clients;
 
 	public:
-		Server( std::vector<t_server> serverConfig );
+		Server( std::vector<t_config> serverConfig );
 		~Server();
-		void CreateServerSocket( t_server& server );
+		void CreateServerSocket( t_config& server );
 		void run( void );
 		void addConnection( int serverFD );
 		int handleRequest ( t_client& client );
