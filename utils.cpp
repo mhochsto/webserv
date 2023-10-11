@@ -63,7 +63,8 @@ std::string convertIPtoString(unsigned long ip){
 }
 /* wip */
 void    print(printState state, std::string msg){
-    std::cout << msg << std::endl;
+    //std::cout << msg << std::endl;
+	(void)msg;
     (void)state;
 }
 
