@@ -7,9 +7,9 @@
 /*asuming all cgi files have an extension*/
 std::string CgiHandler::getPathInfo(std::string path) {
     path.erase(0, std::strlen(CGI_PATH) + 1);
-    if (path.find_first_of('/') == std::string::npos) return "";
+    if (path.find_first_of('/') == std::string::npos) return ("");
    path = path.substr(path.find_first_of('/'));
-    return path;
+    return (path);
 }
 
 /*
@@ -26,6 +26,7 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_config serv, std:
 
     std::stringstream ssport;
     ssport << serv.port;
+	std::cout << path << std::endl;
     m_env["SERVER_SOFTWARE"] = "webserv/1.0";
     m_env["SERVER_NAME"] = request.get("Host");
     m_env["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -64,24 +65,23 @@ void CgiHandler::execute(void){
 	char *argv[] = { (char *)m_path.c_str(), NULL};
 	
 	char	*env[this->m_env.size() + 1];
-	int		i = 0;
 	std::vector<std::string> tmp;
-	for (stringMap::iterator it = m_env.begin(); it != m_env.end(); it++) 
-	{
+	for (stringMap::iterator it = m_env.begin(); it != m_env.end(); it++) {
 		tmp.push_back(it->first + "=" + it->second);
-		env[i++] = (char *)tmp.back().c_str();
+	}
+	unsigned long i = 0;
+	for (; i < m_env.size(); i++) {
+		env[i] = (char *)tmp[i].c_str();
+//		std::cout << env[i] << std::endl;
 	}
 	env [i] = NULL;
-	for (unsigned long i = 0; i < m_env.size(); i++) {
-		std::cout << env[i] << std::endl;
-	}
 	pid_t pid = fork();
 	if (pid ==  -1) throw std::runtime_error(SYS_ERROR("fork"));
 	if (pid == 0) {
 		if (dup2(fd[1], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		close (fd[0]);
 		close (fd[1]);
-		if (execve("./ubuntu_cgi_tester.cgi", argv , env) == -1)throw std::runtime_error(SYS_ERROR("execve"));//delete later
+		if (execve(argv[0], argv , env) == -1)throw std::runtime_error(SYS_ERROR("execve"));//delete later
 	} else {
 		waitpid(pid, NULL, 0);
 	}

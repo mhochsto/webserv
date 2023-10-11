@@ -48,7 +48,7 @@ int Request::validateAndSetRequestLine( std::string line ) {
 	m_client.location = m_config.locations[getLocationName()];	
 	bool valid = false;
 	for (unsigned long i = 0; i < m_client.location.allowedMethods.size(); i++){
-		std::cout << m_client.location.allowedMethods.at(i) << std::endl;
+	//	std::cout << m_client.location.allowedMethods.at(i) << std::endl;
 		if (m_requestType == m_client.location.allowedMethods.at(i)){
 			valid = true;
 			return 0;
