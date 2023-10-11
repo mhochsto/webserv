@@ -116,7 +116,7 @@ void Response::getResponse( Request& request ){
 	}
 	else if (request.getPath() == "MethodNotAllowed"){
 		resp = "405 Method Not Allowed\n";
-		fileName = "." +m_client.config.root + m_client.config.errorPages["405"];
+		fileName = "." + m_client.config.root + m_client.config.errorPages["405"];
 	}
 	else if (request.getPath() == "BadRequest"){
 		resp = "400 Bad Request\n";
@@ -165,7 +165,7 @@ void Response::postResponse( Request& request ){
 
 void Response::deleteResponse( Request& request ){
 
-//	std::cout <<RED<<  << RESET<<std::endl;
+	//	std::cout <<RED<< << RESET<<std::endl;
 	if (remove(std::string(m_client.config.root + request.getPath()).c_str())  == 0){
 		createResponse("204 No Content\n", "");
 	}

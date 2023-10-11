@@ -2,18 +2,13 @@
 
 
 Request::Request(t_client& client): m_config(client.config), m_client(client) {
-	std::string test = client.header;
-	parseHeader(test);
-}
-
-Request::~Request(){}
-
-int Request::parseHeader( std::string& buffer ){
+	std::string buffer = client.header;
+	std::cout << RED << buffer << RESET << std::endl;
 	std::stringstream sstreamBuffer(buffer);
 	std::string line;
 	std::getline(sstreamBuffer, line);
 	if (validateAndSetRequestLine(line)){
-		return 1;
+		return ;
 	}
 	buffer.erase(0, line.length() + 1);
 	while (std::getline(sstreamBuffer, line)){
@@ -23,11 +18,13 @@ int Request::parseHeader( std::string& buffer ){
 			buffer.erase(0, line.length() + 1);
 		}
 		else {
-			return 0;
+			return ;
 		}
 	}
-	return 0;
 }
+
+Request::~Request(){}
+
 
 int Request::validateAndSetRequestLine( std::string line ) {
 	std::stringstream sstream(line);

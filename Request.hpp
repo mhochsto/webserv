@@ -3,7 +3,7 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-#include<string>
+#include <string>
 #include <vector>
 #include <sstream>
 #include <algorithm>
@@ -14,10 +14,9 @@
 #include <cstdlib>
 #include <poll.h>
 
-#include "Config.hpp"
-#include "Error.hpp"
-#include "utils.hpp"
-# include "Server.hpp"
+# include "DataStructs.hpp"
+# include "utils.hpp"
+# include "Error.hpp"
 
 # define HTTP_HEADER_LIMIT 8192
 
@@ -28,24 +27,22 @@ class Request {
 		std::string     m_requestType;
 		std::string     m_requestPath;
 		std::string     m_requestHttpVersion;
-		std::map<std::string, std::string> m_requestData;
 		std::string		m_requestBody;
+		std::map<std::string, std::string> m_requestData;
 
-		int parseHeader( std::string& header );
-		int 	validateAndSetRequestLine( std::string line );
+		int 		validateAndSetRequestLine( std::string line );
+		std::string getLocationName( void );
 	public:
 		Request(t_client& client);
 		~Request();
 	
-	bool        contains( std::string str ) const;
-	std::string get( std::string str ) const;
-	std::string getLocationName( void );
-	std::string getType( void );
-	std::string getPath( void );
-	std::string getBody( void );
-	std::string getClientIP( void );
-	void		setPath( std::string newPath );
+		bool        contains( std::string str ) const;
+		std::string get( std::string str ) const;
+		std::string getType( void );
+		std::string getPath( void );
+		std::string getBody( void );
+		std::string getClientIP( void );
+		void		setPath( std::string newPath );
 };
-
 
 #endif

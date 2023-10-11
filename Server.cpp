@@ -194,9 +194,8 @@ void Server::sendResponse( t_client& client, std::string status ){
 }
 
 int Server::handleRequest( t_client& client ){
-	ssize_t recvValue;
 	if (!headerFullyRecieved(client)){
-		recvValue = recvHeader(client);
+		ssize_t recvValue = recvHeader(client);
 		if (recvValue == 0){
 			return 1;
 		}
