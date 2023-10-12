@@ -5,6 +5,7 @@
 #include "utils.hpp"
 
 /*asuming all cgi files have an extension*/
+/*this should cut everything after the scriptname but nothing in the query part!*/
 std::string CgiHandler::getPathInfo(std::string path) {
     path.erase(0, std::strlen(CGI_PATH) + 1);
     if (path.find_first_of('/') == std::string::npos) return ("");
@@ -26,14 +27,14 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_config serv, std:
 
     std::stringstream ssport;
     ssport << serv.port;
-	std::cout << path << std::endl;
+//	std::cout << path << std::endl;
     m_env["SERVER_SOFTWARE"] = "webserv/1.0";
     m_env["SERVER_NAME"] = request.get("Host");
     m_env["GATEWAY_INTERFACE"] = "CGI/1.1";
     m_env["SERVER_PROTOCOL"] = "HTTP/1.1";
     m_env["SERVER_PORT"] = ssport.str();
     m_env["REQUEST_METHOD"] = request.getType();
-    m_env["PATH_INFO"] = getPathInfo(path);
+    m_env["PATH_INFO"] = "/yo";//getPathInfo(path);
     m_env["PATH_TRANSLATED"] = serv.root + "/" + request.getPath();
     m_env["SCRIPT_NAME"] = path.substr(1, path.find(getPathInfo(path)) - 1);
     m_env["QUERY_STRING"] = rawUrlParameter;
