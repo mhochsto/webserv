@@ -13,11 +13,13 @@ class Request;
 class CgiHandler {
     private:
         std::string m_path;
+        std::string m_type;
+        std::string m_requestBody;
         std::string m_output;
         std::map<std::string, std::string> m_env;
-        char        **m_args;
-        char **convertEnv( void );
-        char **convertArgs( void );
+        // char        **m_args;
+        // char **convertEnv( void );
+        // char **convertArgs( void );
         std::string getPathInfo(std::string path);
 
     public:
