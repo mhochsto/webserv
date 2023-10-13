@@ -5,7 +5,9 @@
 #include "utils.hpp"
 
 /*asuming all cgi files have an extension*/
-/*this should cut everything after the scriptname but nothing in the query part!*/
+/*this should cut everything after the scriptname but nothing in the query part!
+	but why isn't it like it just cuts the PATH too the script not the script 
+	and the QUERY Part isn't cuted at all*/
 std::string CgiHandler::getPathInfo(std::string path) {
 	path.erase(0, std::strlen(CGI_PATH) + 1);
 	if (path.find_first_of('/') == std::string::npos) return ("");
@@ -27,7 +29,7 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 /*filling the Map for the env*/
 	std::stringstream ssport;
 	ssport << serv.port;
-//	std::cout << path << std::endl;
+	// std::cout << path << std::endl;
 	m_env["SERVER_SOFTWARE"] = "webserv/1.0";
 	m_env["SERVER_NAME"] = request.get("Host");
 	m_env["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -97,7 +99,7 @@ void CgiHandler::execute( void ) {
 		if (dup2(out_fd[1], STDOUT_FILENO) == -1)								throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(in_fd[0], STDIN_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
 		if (close (out_fd[0]) == -1 || close (out_fd[1]) == -1)					throw std::runtime_error(SYS_ERROR("close"));
-		if (close (in_fd[0]) == -1 || close (in_fd[1]) == -1)					throw std::runtime_error(SYS_ERROR("close"));
+		if (close (in_fd[0]) == -1)												throw std::runtime_error(SYS_ERROR("close"));
 		if (execve(argv[0], argv , env) == -1)									throw std::runtime_error(SYS_ERROR("execve"));//delete later //but why???
 	} else {
 		waitpid(pid, NULL, 0);
