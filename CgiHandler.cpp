@@ -9,9 +9,9 @@
 	but why isn't it like it just cuts the PATH too the script not the script 
 	and the QUERY Part isn't cuted at all*/
 std::string CgiHandler::getPathInfo(std::string path) {
-	path.erase(0, std::strlen(CGI_PATH) + 1);
+	path.erase(0, std::strlen(CGI_PATH));
 	if (path.find_first_of('/') == std::string::npos) return ("");
-   path = path.substr(path.find_first_of('/'));
+	path = path.substr(path.find_first_of('/'));
 	return (path);
 }
 
@@ -26,7 +26,7 @@ https://www6.uniovi.es/~antonio/ncsa_httpd/cgi/env.html */
 CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 						std::string path, std::string rawUrlParameter ) : m_path(path) {
 
-/*filling the Map for the env*/
+	/*filling the Map for the env*/
 	std::stringstream ssport;
 	ssport << serv.port;
 	// std::cout << path << std::endl;
@@ -43,8 +43,8 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 	m_env["REMOTE_HOST"] = request.getClientIP();
 	m_env["REMOTE_ADDR"] = request.getClientIP();
 	m_env["CONTENT_TYPE"] = request.getBody();
-	if (request.contains("Content-Length")){
-		m_env["CONTENT_LENGTH"] = request.get("Content-Length");
+	if (request.contains("Content-Length")) {
+		m_env["CONTENT_LENGTH"] = "22";//request.get("Content-Length");
 	}
 	if (request.contains("Accept")){
 		m_env["HTTP_ACCEPT"] = request.get("Accept");
@@ -54,27 +54,29 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 		getFirstWord(userAgent);
 		m_env["HTTP_USER_AGENT"] = userAgent;
 	}
+	// std::cout << rawUrlParameter << std::endl;
+	// std::cout << "PATH_INFO: " << m_env["PATH_INFO"] << std::endl;
 
-/*other needed Information*/
+	/*other needed Information*/
 	m_type = request.getType();
 	m_requestBody = request.getBody();
 
-/*Denn scheiß würde ich gerne Löschen wenn wir es nicht brauchen!!!!*/
+	/*Denn scheiß würde ich gerne Löschen wenn wir es nicht brauchen!!!!*/
 	(void)response;
 	execute();
 }
 
 void CgiHandler::execute( void ) {
 
-/*preping pipes for giving input to and output from the CGI-Script*/
+	/*preping pipes for giving input to and output from the CGI-Script*/
 	int in_fd[2];
 	int out_fd[2];
 	if (pipe(in_fd) == -1 || pipe(out_fd) == -1)								throw std::runtime_error(SYS_ERROR("pipe"));
 
-/*preping the path"Vector" to execute*/
+	/*preping the path"Vector" to execute*/
 	char *argv[] = { (char *)m_path.c_str(), NULL};
 
-/*preping the environment*/
+	/*preping the environment*/
 	char	*env[this->m_env.size() + 1];
 	std::vector<std::string> tmp;
 	for (stringMap::iterator it = m_env.begin(); it != m_env.end(); it++) {
@@ -87,12 +89,13 @@ void CgiHandler::execute( void ) {
 	}
 	env [i] = NULL;
 
-/*preping input for POST Request`s*/
-	if (m_type == "POST")
+	/*preping input for POST Request`s*/
+	if (m_type == "POST") {
 		write(in_fd[1], m_requestBody.c_str(), m_requestBody.size());
+	}
 	if(close (in_fd[1]) == -1)													throw std::runtime_error(SYS_ERROR("close"));
 
-/*starting the execution*/
+	/*starting the execution*/
 	pid_t pid = fork();
 	if (pid ==  -1)																throw std::runtime_error(SYS_ERROR("fork"));
 	if (pid == 0) {
