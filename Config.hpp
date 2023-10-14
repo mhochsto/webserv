@@ -12,8 +12,6 @@
 # include <set>
 # include <limits>
 
-# include <unistd.h> // access() && dup2
-
 # include "DataStructs.hpp"
 # include "utils.hpp"
 # include "Error.hpp"
@@ -27,8 +25,6 @@ class configException : public std::exception
 		~configException() throw () {} 
 		const char* what() const throw() { return msg.c_str(); }
 };
-
-
 
 class Config{
 	typedef void (*fLocation)(std::string, t_location&);
@@ -147,14 +143,25 @@ class Config{
 
 	template <typename T>
 	static void 	addServerName(std::string line, T& set ){
-		set.serverName.clear();
-		set.serverName = convertStringtoVector(line, WHITESPACE);
+		set.serverName = getFirstWord(line);
+		if (!line.empty()){
+			throw configException("invalid ServerName: [" + line + "]");
+		}
 	}
 
 	template <typename T>
 	static void 	addRoot(std::string line, T& set ){
 		formatPath(line);
 		set.root = line;
+	}
+
+	template <typename T>
+	static void		addCgiName(std::string line, T& set){
+		set.cgiScript = getFirstWord(line);
+		if (!line.empty()){
+			throw configException("invalid CgiName: [" + line + "]");
+
+		}
 	}
 
 	template <typename T>

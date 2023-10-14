@@ -5,32 +5,52 @@
 # include "Error.hpp"
 # include "Config.hpp"
 
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 void Server::CreateServerSocket( t_config& server ){
 	pollfd	serverSocket;
-	std::memset(&serverSocket, 0, sizeof(serverSocket));
+	struct addrinfo hints;
+	struct addrinfo *results;
 
+	std::memset(&serverSocket, 0, sizeof(serverSocket));
+	std::memset(&hints, 0, sizeof(hints));
+
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_protocol = 0;
+	hints.ai_canonname = NULL;
+	hints.ai_addr = NULL;
+	hints.ai_next = NULL;
+	
+	std::stringstream port;
+	port << server.port;
+	int s = getaddrinfo(server.serverName.c_str(), port.str().c_str(), &hints, &results);
+	if (s){
+		std::cerr << gai_strerror(s) << std::endl;
+	}
 	serverSocket.events = POLLIN | POLLOUT;
-	serverSocket.fd = (socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0));
+	serverSocket.fd = socket(results->ai_family, results->ai_socktype | SOCK_NONBLOCK, results->ai_protocol);
 	if (serverSocket.fd == -1){
+		freeaddrinfo(results);
 		throw std::runtime_error(SYS_ERROR("socket"));
 	}
 
 	int on = 1;
 	if (setsockopt(serverSocket.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == -1) {
 		close(serverSocket.fd);
+		freeaddrinfo(results);
 		throw std::runtime_error(SYS_ERROR("setsockopt"));
 	}
-
-	sockaddr_in serverAddress;
-	std::memset(&serverAddress, 0, sizeof(serverAddress));
-	serverAddress.sin_family = AF_INET;
-	serverAddress.sin_port = htons(server.port);
-	serverAddress.sin_addr.s_addr = INADDR_ANY;
-
-	if (bind(serverSocket.fd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
+	if (bind(serverSocket.fd, results->ai_addr, results->ai_addrlen) == -1){
 		close(serverSocket.fd);
+		freeaddrinfo(results);
 		throw std::runtime_error(SYS_ERROR("bind"));
 	}
+	freeaddrinfo(results);
 	if (listen(serverSocket.fd, CLIENT_MAX)){
 		close(serverSocket.fd);
 		throw std::runtime_error(SYS_ERROR("listen"));
@@ -41,9 +61,9 @@ void Server::CreateServerSocket( t_config& server ){
 
 Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		print(Notification, "starting Server: " + *it->serverName.begin());
+		print(Notification, "starting Server");
 		CreateServerSocket(*it);
-		print(Notification, "Server started Successfully: " + *it->serverName.begin());
+		print(Notification, "Server started Successfully");
 	}
 }
 
@@ -63,13 +83,13 @@ void Server::run( void ){
 			if (isServerSocket(m_sockets.at(i).fd)){
 				if (m_sockets.at(i).revents & POLLIN){
 					addConnection(m_sockets.at(i).fd);
+					m_sockets.at(i).revents = 0;
 				}
 			}
 			else if (m_sockets.at(i).revents != 0) {
 				if (m_sockets.at(i).revents & POLLIN) {
-					if (handleRequest(m_clients[m_sockets.at(i).fd])){
-						//m_sockets.at(i).revents = 0;
-					}
+					handleRequest(m_clients[m_sockets.at(i).fd]);
+					m_sockets.at(i).revents = 0;
 				}
 		   }
 		}
@@ -83,26 +103,24 @@ void Server::addConnection( int serverFD ){
 	socklen_t addrlen = sizeof(newClientAddr);
 	std::memset(&newClientPoll, 0, sizeof(newClientPoll));
 
-	do {
-		errno = 0;
-		newClientPoll.fd = accept(serverFD, NULL, NULL);
-		if (newClientPoll.fd == -1){
-			return ;
-		}
-		newClientPoll.events = POLLIN | POLLOUT;
-		m_sockets.push_back(newClientPoll);
-		
-		if (getsockname(newClientPoll.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1) throw std::runtime_error(SYS_ERROR("getsockname"));
-
-		newClient.fd = newClientPoll.fd;
-		newClient.serverFD = serverFD;
-		newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
-		setConfig(newClient);
-		m_clients[newClient.fd] = newClient;
-		newClient.chunkSizeLong = -1;
-		print(Notification, "new Client added (ip): " + newClient.ip);
-	} while (newClient.fd != -1);
-
+	newClientPoll.fd = accept(serverFD, NULL, NULL);
+	if (newClientPoll.fd == -1){
+		return ;
+	}
+	newClientPoll.events = POLLIN | POLLOUT;
+	
+	if (getsockname(newClientPoll.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1){
+		close(newClientPoll.fd);
+		return ;
+	}
+	m_sockets.push_back(newClientPoll);
+	newClient.fd = newClientPoll.fd;
+	newClient.serverFD = serverFD;
+	newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
+	setConfig(newClient);
+	newClient.chunkSizeLong = -1;
+	m_clients[newClient.fd] = newClient;
+	print(Notification, "new Client added (ip): " + newClient.ip);
 }
 
 void Server::setConfig(t_client& client){
@@ -193,23 +211,21 @@ void Server::sendResponse( t_client& client, std::string status ){
 	client.chunkSizeLong = -1;
 }
 
-int Server::handleRequest( t_client& client ){
+void Server::handleRequest( t_client& client ){
 	if (!headerFullyRecieved(client)){
 		ssize_t recvValue = recvHeader(client);
-		if (recvValue == 0){
-			return 1;
-		}
-		if (recvValue == - 1){
+		if (recvValue <= 0){
 			removeClient(client);
-			return 1;
+			return ;
 		}
 		if (!headerFullyRecieved(client)){
-			return 1;
+			return ;
 		}
 		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
 			client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
+			client.header.erase(client.header.find("\r\n\r\n"));
 			sendResponse(client, "Ok");
-			return 0;
+			return ;
 		}
 	}
 
@@ -217,15 +233,15 @@ int Server::handleRequest( t_client& client ){
 	switch (recvChunks(client)){
 		case BadRequest:
 			sendResponse(client, "BadRequest");
-			return 0;
+			return ;
 		case ChunkRecieved:
-			return 1;
+			return ;
 		case Complete:
 			sendResponse(client, "Ok");
-			return 0;
+			return ;
 		case recvError:
 			removeClient(client);
-			return 1;
+			return ;
 	}
 }
 

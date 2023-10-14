@@ -2,7 +2,7 @@
 # define DEFAULTCONFIG_HPP
 
 # define SERVER_LISTEN 8800
-# define SERVER_NAME "localhost"
+# define SERVER_LOCALHOST "localhost"
 # define SERVER_CLIENT_MAX_BODY_SIZE 10000
 # define SERVER_ROOT "/website/"
 # define SERVER_INDEX "index.html"
@@ -24,8 +24,6 @@
 # define CLIENT_BODY_SIZE_MIN 1
 # define CLIENT_BODY_SIZE_Max 1000000 // = 1MB - https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-body-size-limit/
 
-# define ALLOWED_IDENTIFIER_LOCATION {"allow_methods", "autoindex", "proxy_pass", "allowed_cgi_extension", "client_max_body_size", "index", NULL}
-# define ALLOWED_IDENTIFIER_SERVER {"rewrite", "server_name", "listen", "client_max_body_size", "root", "index", "error_page", NULL}
 
 #define UNSET -1
 #endif

@@ -19,6 +19,8 @@ typedef struct s_location {
 	std::string					index;
 	std::string					proxyPass;
 	std::string					path;
+	std::string					root;
+	std::string					cgiScript;
 	std::vector <std::string>	allowedCgiExtensions;
 	std::vector <std::string>	allowedMethods;
 } t_location;
@@ -34,7 +36,7 @@ typedef struct s_config {
 		port = SERVER_LISTEN;
 		clientMaxBodySize = SERVER_CLIENT_MAX_BODY_SIZE;
 		root = SERVER_ROOT;
-		serverName.push_back(SERVER_NAME);
+		serverName = SERVER_LOCALHOST;
 		errorPages["400"] = SERVER_ERROR_PAGE_400;
 		errorPages["404"] = SERVER_ERROR_PAGE_404;
 		errorPages["405"] = SERVER_ERROR_PAGE_405;
@@ -49,7 +51,7 @@ typedef struct s_config {
 	ssize_t								clientMaxBodySize;
 	std::string							root;
 	std::string							index;
-	std::vector <std::string>			serverName;
+	std::string							serverName;
     stringMap							redirects;
     stringMap							errorPages;
     locationMap							locations;

@@ -4,10 +4,6 @@
 # include <algorithm>
 # include <ctime>
 
-#include <sys/stat.h> // stat()
-#include <sys/types.h> // struct DIR; *dir()
-#include <dirent.h> // struct dirent
-
 
 #include <fcntl.h>
 
@@ -20,7 +16,6 @@ class Response {
         std::string m_response;
         t_client    m_client;
         int         m_responseSize;
-        std::map<std::string, std::string> m_UrlParameter; 
         typedef void (Response::*funcPtr)(Request&);
         
         std::map<std::string, funcPtr> m_responseMap;
@@ -29,11 +24,11 @@ class Response {
         void deleteResponse( Request& request );
         void putResponse( Request& request );
 
-        void saveGetParam( std::string content ); 
+        std::string createStringFromFile(std::string fileName);
         std::string showDir(std::string path);
         void createResponse(std::string rspType, std::string file);
         void cgiResponse( std::string path, Request& request, std::string rawUrlParameter );
-        void create404Response(void);
+        void createErrorResponse( const std::string& errorCode );
     public:
         Response( t_client& client, Request& request );
         const char *returnResponse( void );

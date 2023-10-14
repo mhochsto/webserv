@@ -6,6 +6,12 @@
 # include "CgiHandler.hpp"
 
 Response::Response(t_client& client, Request& request ): m_client(client) {
+	/* serve errorpage straight away if request parsing found an issue */
+	if (!request.getInvalidRequest().empty()){
+		createErrorResponse(request.getInvalidRequest());
+		return ;
+	}
+
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
@@ -50,28 +56,15 @@ void Response::createResponse(std::string rspType, std::string file){
 	m_responseSize = m_response.length();
 }
 
-void Response::saveGetParam( std::string content ){
-	std::stringstream ssContent(content);
-	while (std::getline(ssContent, content, '&')) {
-		m_UrlParameter[content.substr(0, content.find_first_of('='))] = content.substr(content.find_first_of('=') + 1);
-	}
-}
-
-void Response::create404Response(void){
-	std::fstream file(m_client.config.errorPages["404"].c_str());	
-	if (!file){
-		throw std::runtime_error(SYS_ERROR("can't open source file"));
-	}
-	std::stringstream sstream;
-	sstream << file.rdbuf();
-	file.close();
-	createResponse("404 NotFound\n", sstream.str());
+/* this is just for readability */
+void Response::createErrorResponse(const std::string& errorCode){
+	createResponse(errorCode, createStringFromFile("." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)]));
 }
 
 void Response::putResponse( Request& request ) {
 	std::string proxyPassPath = m_client.config.root + "/" + m_client.location.proxyPass;
 	if (access(proxyPassPath.c_str(), F_OK) == -1){
-		create404Response();
+		createErrorResponse("400 File not Found\n");
 		return ;
 	}
 
@@ -79,100 +72,46 @@ void Response::putResponse( Request& request ) {
 
 	std::ofstream file(proxyPassPath.c_str(), std::ios::out | std::ios::trunc);
 	if (!file){
-		create404Response();
+		createErrorResponse("400 File not Found\n");
 		return ;
 	}
 	file << m_client.body;
 	createResponse("200 OK\n", "");
 }
 
-void Response::getResponse( Request& request ){
-
-	std::string path = "." + m_client.config.root + request.getPath();
-	std::string resp;
+std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
-	std::string fileName;
-	std::string rawUrlParameter;
-	/* save url parameters */
-	if (path.find_first_of('?') != std::string::npos){
-		rawUrlParameter = path.substr(path.find_first_of('?') + 1);
-		saveGetParam(rawUrlParameter);
-		path.erase(path.find_first_of('?'));
-	}
-	/* set Path for homepage / location to index if available */
-	if (path == "." + m_client.config.root + "/"){
-		path.append(m_client.location.index.empty() ? m_client.config.index : m_client.location.index);
-	}
-	/* Pick response Code and Filename */
-	if (!std::strncmp(path.c_str(), CGI_PATH, std::strlen(CGI_PATH))){
-		if (access(path.c_str(), X_OK) == -1){
-			resp = "403 Forbidden\n";
-			fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
-		}
-		else {
-			cgiResponse(path, request, rawUrlParameter);
-			return ;
-		}
-	}
-	else if (request.getPath() == "MethodNotAllowed"){
-		resp = "405 Method Not Allowed\n";
-		fileName = "." + m_client.config.root + m_client.config.errorPages["405"];
-	}
-	else if (request.getPath() == "BadRequest"){
-		resp = "400 Bad Request\n";
-		fileName = "." +m_client.config.root + m_client.config.errorPages["400"];
-	}
-	else if (access(path.c_str(), F_OK) == -1){
-		resp = "404 NotFound\n";
-		fileName = "." +m_client.config.root + m_client.config.errorPages["404"];
-	}
-	else if (access(path.c_str(), R_OK) == -1){
-		resp = "403 Forbidden\n";
-		fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
-	}
-	else {
-		struct stat statbuf;
-		std::memset(&statbuf, 0 , sizeof(struct stat));
-		if (stat(path.c_str(), &statbuf) == -1) throw std::runtime_error(SYS_ERROR("stat"));
-		if (S_ISDIR(statbuf.st_mode)){
-			if (m_client.location.autoIndex){
-				resp = "200 OK\n";
-				createResponse(resp, showDir(path));
-				return ;
-			} else{
-				resp = "403 Forbidden\n";
-				fileName = "." +m_client.config.root + m_client.config.errorPages["403"];
-			}
-		}
-		else {
-			resp = "200 OK\n";
-			fileName = path;
-		}
-	}
 	file.open(fileName.c_str());	
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
 	std::stringstream sstream;
 	sstream << file.rdbuf();
 	file.close();
-	createResponse(resp, sstream.str());
+	return sstream.str();
+}
+
+void Response::getResponse( Request& request ){
+
+	if (request.getShowDir()){
+		createResponse("200 OK\n", showDir(request.getPath()));
+		return ;
+	}
+	createResponse("200 OK\n", createStringFromFile(request.getPath()));
 }
 
 void Response::postResponse( Request& request ){
-	request.setPath(request.getPath() + "?" + request.getBody());
+	//request.setPath(request.getPath() + "?" + request.getBody());
 	getResponse(request);
 }
 
 void Response::deleteResponse( Request& request ){
 
-	//	std::cout <<RED<< << RESET<<std::endl;
 	if (remove(std::string(m_client.config.root + request.getPath()).c_str())  == 0){
 		createResponse("204 No Content\n", "");
 	}
 	else {
-		create404Response();
+		createErrorResponse("400 File not Found\n");
 	}
-	(void)request;
 }
 
 const char *Response::returnResponse( void ) {return (m_response.c_str());}

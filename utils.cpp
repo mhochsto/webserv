@@ -17,7 +17,7 @@ std::string closestMatchingLocation( locationMap locMap, std::string path){
             }
         }
         path.erase(path.find_last_of('/'));
-        if (path == "."){
+        if (path.empty()){
             return "/";
         }
     } while (!path.empty());

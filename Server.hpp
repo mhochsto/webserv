@@ -16,16 +16,14 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <algorithm>
-# include <numeric>
+#include <numeric>
 
 # include "Config.hpp"
-
 
 # define CLIENT_MAX 200
 # define TIMEOUT 5000 //ms
 
 class Config;
-
 
 class Server {
 	private:
@@ -39,7 +37,7 @@ class Server {
 		void CreateServerSocket( t_config& server );
 		void run( void );
 		void addConnection( int serverFD );
-		int handleRequest ( t_client& client );
+		void handleRequest( t_client& client );
 		void setConfig( t_client& client );
 		bool isServerSocket(int fd);
 		void removeClient( t_client& client );

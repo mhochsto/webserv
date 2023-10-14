@@ -11,7 +11,6 @@ std::string CgiHandler::getPathInfo(std::string path){
     if (path.find_first_of('/') == std::string::npos) return "";
    path = path.substr(path.find_first_of('/'));
     return path;
-
 }
 
 /*
@@ -41,13 +40,13 @@ CgiHandler::CgiHandler(Response& response ,Request& request, t_config serv, std:
     m_env["REMOTE_HOST"] = request.getClientIP();
     m_env["REMOTE_ADDR"] = request.getClientIP();
     m_env["CONTENT_TYPE"] = request.getBody();
-	if (request.contains("Content-Length")){
+	if (request.contains("Content-Length")) {
     	m_env["CONTENT_LENGTH"] = request.get("Content-Length");
 	}
-	if (request.contains("Accept")){
+	if (request.contains("Accept")) {
     	m_env["HTTP_ACCEPT"] = request.get("Accept");
 	}
-	if (request.contains("User-Agent")){
+	if (request.contains("User-Agent")) {
 		std::string userAgent = request.get("User-Agent");
 		getFirstWord(userAgent);
     	m_env["HTTP_USER_AGENT"] = userAgent;
@@ -74,9 +73,8 @@ void CgiHandler::execute(void){
 		close (fd[0]);
 		close (fd[1]);
 		if (execve(m_path.c_str(), argv , environ) == -1)throw std::runtime_error(SYS_ERROR("execve"));
-	} else {
-		waitpid(pid, NULL, 0);
-	}
+	} 
+	waitpid(pid, NULL, 0);
 	close(fd[1]);
 	char buf[100];
 	while(true){
