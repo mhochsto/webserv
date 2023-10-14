@@ -61,9 +61,8 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 	/*just some tests*/
 	std::cout << std::endl << std::endl << "________________________________________________________________________" << std::endl;
 	std::cout << "Everything I have inside the CGI_function!" << std::endl;
-	std::cout << "rawUrlParameter:" << rawUrlParameter << std::endl;
-	std::cout << "PATH_INFO: " << m_env["PATH_INFO"] << std::endl;
-	std::cout << "Everything I get in the CGI function!" << std::endl;
+	std::cout << "\trawUrlParameter:" << rawUrlParameter << std::endl;
+	std::cout << "\tPATH_INFO: " << m_env["PATH_INFO"] << std::endl;
 	std::cout << response << std::endl;
 	std::cout << request << std::endl;
 	std::cout << serv;
@@ -115,7 +114,7 @@ void CgiHandler::execute( void ) {
 	}
 	if (close(out_fd[1]) == -1 || close(in_fd[0]) == -1)						throw std::runtime_error(SYS_ERROR("close"));
 	char buf[100];
-	while(true){
+	while(true) {
 		std::memset(buf, 0, 100);
 		int rd = read(out_fd[0], buf, 100);
 		if (rd == -1)															throw std::runtime_error(SYS_ERROR("read"));
