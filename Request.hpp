@@ -38,11 +38,13 @@ class Request {
 	
 		bool        contains( std::string str ) const;
 		std::string get( std::string str ) const;
-		std::string getType( void );
-		std::string getPath( void );
-		std::string getBody( void );
-		std::string getClientIP( void );
+		std::string getType( void ) const;
+		std::string getPath( void ) const;
+		std::string getBody( void ) const;
+		std::string getClientIP( void ) const;
 		void		setPath( std::string newPath );
 };
+
+std::ostream    &operator<<(std::ostream &os, const Request &rhs);
 
 #endif

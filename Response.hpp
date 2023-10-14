@@ -36,16 +36,16 @@ class Response {
         void create404Response(void);
     public:
         Response( t_client& client, Request& request );
-        const char *returnResponse( void );
-        int  getSize( void );
+        const char *returnResponse( void ) const;
+        int  getSize( void ) const;
 
 };
 
 
 std::string timestamp(void);
+
 # define FOF_PATH "./website/pages/404.html"
 
-
-
+std::ostream    &operator<<(std::ostream &os, const Response &rhs);
 
 #endif

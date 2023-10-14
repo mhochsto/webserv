@@ -54,15 +54,22 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 		getFirstWord(userAgent);
 		m_env["HTTP_USER_AGENT"] = userAgent;
 	}
-	// std::cout << rawUrlParameter << std::endl;
-	// std::cout << "PATH_INFO: " << m_env["PATH_INFO"] << std::endl;
 
 	/*other needed Information*/
 	m_type = request.getType();
 	m_requestBody = request.getBody();
 
-	/*Denn scheiß würde ich gerne Löschen wenn wir es nicht brauchen!!!!*/
-	(void)response;
+	/*just some tests*/
+	std::cout << std::endl << std::endl << "________________________________________________________________" << std::endl;
+	std::cout << "Everything I have inside the CGI_function!" << std::endl;
+	std::cout << "rawUrlParameter:" << rawUrlParameter << std::endl;
+	std::cout << "PATH_INFO: " << m_env["PATH_INFO"] << std::endl;
+	std::cout << "Everything I get in the CGI function!" << std::endl;
+	std::cout << response << std::endl;
+	std::cout << request << std::endl;
+	std::cout << serv;
+	std::cout << "________________________________________________________________" << std::endl << std::endl;
+	/*delete everything above later*/	
 	execute();
 }
 

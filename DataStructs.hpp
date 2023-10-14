@@ -73,4 +73,6 @@ typedef struct s_client {
 	chunkStatus chunkState;
 } t_client;
 
+std::ostream	&operator<<(std::ostream &os, const t_config &rhs); // written in the utils.cpp
+
 #endif

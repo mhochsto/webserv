@@ -74,12 +74,21 @@ bool Request::contains(std::string str) const {
 	return m_requestData.find(str) != m_requestData.end();
 }
 
-std::string Request::getType( void ) { return m_requestType;}
+std::string Request::getType( void ) const { return m_requestType;}
 
-std::string Request::getPath( void ) { return m_requestPath;}
+std::string Request::getPath( void ) const { return m_requestPath;}
 
-std::string Request::getBody( void ) { return m_requestBody;}
+std::string Request::getBody( void ) const { return m_requestBody;}
 
 void		Request::setPath( std::string newPath ) { m_requestPath = newPath; }
 
-std::string Request::getClientIP( void ) { return m_client.ip;}
+std::string Request::getClientIP( void ) const { return m_client.ip;}
+
+std::ostream    &operator<<(std::ostream &os, const Request &rhs) {
+	os << "What's in the Request Class!" << std::endl;
+	os << "\tRequest.body: " << rhs.getBody() << std::endl;
+	os << "\tRequest.ClientIP: " << rhs.getClientIP() << std::endl;
+	os << "\tRequest.getPath: " << rhs.getPath() << std::endl;
+	os << "\tRequest.getType: " << rhs.getType() << std::endl;
+	return (os);
+}

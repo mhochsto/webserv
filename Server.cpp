@@ -173,7 +173,7 @@ bool Server::headerFullyRecieved(t_client& client){
 
 void Server::sendResponse( t_client& client, std::string status ){
 	print(Notification, "recieved request from " + client.ip);
-	print(Notification, client.header.substr(0, client.header.find("\n")));
+	print(Notification, client.header);//.substr(0, client.header.find("\n")));
 
 	if (status != "Ok"){
 		client.header = status;
