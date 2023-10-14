@@ -26,7 +26,7 @@ DEPFILES = $(SRC:%.cpp=%.d)
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	@$(CXX) -o $(NAME) $(OBJ) -I.
+	$(CXX) -o $(NAME) $(OBJ) -I.
 	@echo "Done making"
 
 $(DEPFILES): 
@@ -37,9 +37,11 @@ test: $(NAME)
 clean:
 	@rm -f $(OBJ)
 	@rm -f $(DEPFILES)
+	@echo "cleaned the o_files and the d_files"
 
 fclean: clean
 	@rm -f $(NAME)
+	@echo "cleaned the executable"
 
 re:	fclean $(NAME)
 

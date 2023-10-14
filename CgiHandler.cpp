@@ -9,7 +9,7 @@
 	but why isn't it like it just cuts the PATH too the script not the script 
 	and the QUERY Part isn't cuted at all*/
 std::string CgiHandler::getPathInfo(std::string path) {
-	path.erase(0, std::strlen(CGI_PATH));
+	path.erase(0, std::strlen(CGI_PATH) + 1);
 	if (path.find_first_of('/') == std::string::npos) return ("");
 	path = path.substr(path.find_first_of('/'));
 	return (path);
@@ -29,7 +29,6 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 	/*filling the Map for the env*/
 	std::stringstream ssport;
 	ssport << serv.port;
-	// std::cout << path << std::endl;
 	m_env["SERVER_SOFTWARE"] = "webserv/1.0";
 	m_env["SERVER_NAME"] = request.get("Host");
 	m_env["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -60,7 +59,7 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 	m_requestBody = request.getBody();
 
 	/*just some tests*/
-	std::cout << std::endl << std::endl << "________________________________________________________________" << std::endl;
+	std::cout << std::endl << std::endl << "________________________________________________________________________" << std::endl;
 	std::cout << "Everything I have inside the CGI_function!" << std::endl;
 	std::cout << "rawUrlParameter:" << rawUrlParameter << std::endl;
 	std::cout << "PATH_INFO: " << m_env["PATH_INFO"] << std::endl;
@@ -68,8 +67,8 @@ CgiHandler::CgiHandler( Response& response, Request& request, t_config serv,
 	std::cout << response << std::endl;
 	std::cout << request << std::endl;
 	std::cout << serv;
-	std::cout << "________________________________________________________________" << std::endl << std::endl;
-	/*delete everything above later*/	
+	std::cout << "________________________________________________________________________" << std::endl << std::endl;
+	/*delete everything above later*/
 	execute();
 }
 
