@@ -68,4 +68,6 @@ class Request {
 
 };
 
+std::ostream    &operator<<(std::ostream &os, const Request &rhs);
+
 #endif

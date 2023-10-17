@@ -121,6 +121,19 @@ void Response::deleteResponse( Request& request ){
 	}
 }
 
-const char *Response::returnResponse( void ) {return (m_response.c_str());}
+const char *Response::returnResponse( void ) const {return (m_response.c_str());}
 
-int  Response::getSize( void ){return (m_responseSize);}
+int  Response::getSize( void ) const {return (m_responseSize);}
+
+/* STDIN && Env still missing */
+void Response::cgiResponse( std::string path, Request& request, std::string rawUrlParameter ){
+	CgiHandler cgi(*this, request, m_client.config, path, rawUrlParameter);
+	createResponse("200 OK\n", cgi.getOutput());
+}
+
+std::ostream    &operator<<(std::ostream &os, const Response &rhs) {
+	os << "What's in the response Class!" << std::endl;
+	os << "\tResponse.size():" << rhs.getSize() << std::endl;
+	os << "\tResponse.returnResponce():" << rhs.returnResponse() << std::endl;
+	return (os);
+}

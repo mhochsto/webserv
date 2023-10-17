@@ -1,5 +1,7 @@
 #include "utils.hpp"
 #include "Error.hpp"
+#include "DataStructs.hpp"
+
 /* used to sort biggest to smallest */
 static bool compareLength(std::string& str1, std::string& str2){ return (str1.length() > str2.length());}
 
@@ -64,6 +66,7 @@ std::string convertIPtoString(unsigned long ip){
 /* wip */
 void    print(printState state, std::string msg){
     std::cout << msg << std::endl;
+	(void)msg;
     (void)state;
 }
 
@@ -88,4 +91,42 @@ void formatPath(std::string& str){
 		str.resize(str.length() - 1);
 	if (str.at(0) != '/')
 		str = "/"+ str;
+}
+
+std::ostream	&operator<<(std::ostream &os, const t_config &rhs) {
+	os << "Whats in the Config Struct named serv!" << std::endl;
+	os << "\tserv.fd: " << rhs.fd << std::endl;
+	os << "\tserv.port: " << rhs.port << std::endl;
+	os << "\tserv.root: " << rhs.root << std::endl;
+	os << "\tserv.index: " << rhs.index << std::endl;
+	os << "\teverything in the serv.serverName vector: " << std::endl;
+	for (std::vector<std::string>::const_iterator it = rhs.serverName.begin(); it != rhs.serverName.end(); it++) {
+		os << "\t\t" << *it << std::endl;
+	}
+	os << "\teverything in the serv.redirects map: " << std::endl;
+	for (stringMap::const_iterator it = rhs.redirects.begin(); it != rhs.redirects.end(); it ++) {
+		os << "\t\t" << it->first << ": " << it->second << std::endl;
+	}
+	os << "\teverything in the serv.errorPages map: " << std::endl;
+	for (stringMap::const_iterator it = rhs.errorPages.begin(); it != rhs.errorPages.end(); it ++) {
+		os << "\t\t" << it->first << ": " << it->second << std::endl;
+	}
+	os << "\teverything in the serv.locations map: " << std::endl;
+	for (locationMap::const_iterator it = rhs.locations.begin(); it != rhs.locations.end(); it ++) {
+		os << "\t\t" << "BASIC INFOS:" << it->first << std::endl;
+		os << "\t\t" << "AutoIndex: " << it->second.autoIndex << std::endl;
+		os << "\t\t" << "ClientMaxBodySize: " << it->second.clientMaxBodySize << std::endl;
+		os << "\t\t" << "Index: " << it->second.index << std::endl;
+		os << "\t\t" << "ProxyPass: " << it->second.proxyPass << std::endl;
+		os << "\t\t" << "Path: " << it->second.path << std::endl;
+		os << "\t\t" << "Everything in the serv.location.allowedCgiExtensions XD" << std::endl;
+		for (std::vector<std::string>::const_iterator itCgi = it->second.allowedCgiExtensions.begin(); itCgi != it->second.allowedCgiExtensions.end(); itCgi++) {
+			os << "\t\t\t" << *itCgi << std::endl;
+		}
+		os << "\t\t" << "Everything in the serv.location.allowedMethods XD" << std::endl;
+		for (std::vector<std::string>::const_iterator itMethods = it->second.allowedMethods.begin(); itMethods != it->second.allowedMethods.end(); itMethods++) {
+			os << "\t\t\t" << *itMethods << std::endl;
+		}
+	}
+	return (os);
 }
