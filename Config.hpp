@@ -158,6 +158,7 @@ class Config{
 	template <typename T>
 	static void		addCgiName(std::string line, T& set){
 		set.cgiScript = getFirstWord(line);
+		formatPath(set.cgiScript);
 		if (!line.empty()){
 			throw configException("invalid CgiName: [" + line + "]");
 

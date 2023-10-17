@@ -5,13 +5,16 @@
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(t_client& client, Request& request ): m_client(client) {
+Response::Response(t_client& client, Request& request ): m_client(client), m_request(request) {
 	/* serve errorpage straight away if request parsing found an issue */
 	if (!request.getInvalidRequest().empty()){
 		createErrorResponse(request.getInvalidRequest());
 		return ;
 	}
-
+	if (request.getIsCgi()){
+		executeCGI();
+		return ;
+	}
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
@@ -20,6 +23,12 @@ Response::Response(t_client& client, Request& request ): m_client(client) {
 	std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
 	(this->*it->second)(request);
 }
+
+void Response::executeCGI(void){
+	CgiHandler cgi(m_request);
+
+}
+
 
 /* lists all files in path, excluding "." && ".." */
 std::string Response::showDir(std::string path){
@@ -67,7 +76,6 @@ void Response::putResponse( Request& request ) {
 		createErrorResponse("400 File not Found\n");
 		return ;
 	}
-
 	proxyPassPath.append("/" + request.getPath().substr(m_client.location.path.length()));
 
 	std::ofstream file(proxyPassPath.c_str(), std::ios::out | std::ios::trunc);
@@ -91,7 +99,6 @@ std::string Response::createStringFromFile(std::string fileName){
 }
 
 void Response::getResponse( Request& request ){
-
 	if (request.getShowDir()){
 		createResponse("200 OK\n", showDir(request.getPath()));
 		return ;
@@ -117,9 +124,3 @@ void Response::deleteResponse( Request& request ){
 const char *Response::returnResponse( void ) {return (m_response.c_str());}
 
 int  Response::getSize( void ){return (m_responseSize);}
-
-/* STDIN && Env still missing */
-void Response::cgiResponse( std::string path, Request& request, std::string rawUrlParameter ){
-	CgiHandler cgi(*this, request, m_client.config, path, rawUrlParameter);
-	createResponse("200 OK\n", cgi.getOutput());
-}

@@ -199,6 +199,7 @@ void Server::sendResponse( t_client& client, std::string status ){
 	Request request(client);
 
 	Response response(client, request);
+	std::cout << response.returnResponse();
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
 	
 	std::string respStr(response.returnResponse());

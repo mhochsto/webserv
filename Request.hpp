@@ -46,6 +46,8 @@ class Request {
 		void		setIsCgi(void);
 		void		checkFilePermissions(void);
 		void		checkIfDirectoryShouldBeShown( void );
+		void 		validateRequestType(const t_location& location);
+
 	public:
 		Request(t_client& client);
 		~Request();
@@ -58,6 +60,8 @@ class Request {
 		const std::string& getInvalidRequest( void );
 		const std::string& getClientIP( void );
 		const std::string& getQueryString( void );
+		const std::string& getPathInfo( void );
+		t_client& getClient(void);
 		bool				getIsCgi( void );
 		bool				getShowDir( void );
 		void		setPath( std::string newPath );

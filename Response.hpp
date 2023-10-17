@@ -13,8 +13,9 @@ class Request;
 
 class Response {
     private:
+        t_client&   m_client;
+        Request&    m_request;
         std::string m_response;
-        t_client    m_client;
         int         m_responseSize;
         typedef void (Response::*funcPtr)(Request&);
         
@@ -27,8 +28,8 @@ class Response {
         std::string createStringFromFile(std::string fileName);
         std::string showDir(std::string path);
         void createResponse(std::string rspType, std::string file);
-        void cgiResponse( std::string path, Request& request, std::string rawUrlParameter );
         void createErrorResponse( const std::string& errorCode );
+        void executeCGI(void);
     public:
         Response( t_client& client, Request& request );
         const char *returnResponse( void );
