@@ -138,60 +138,73 @@ void Server::removeClient( t_client& client ){
 	m_clients.erase(client.fd);
 }
 
-chunkStatus	Server::recvChunks(t_client& client){
-	char buffer[client.location.clientMaxBodySize];
-	std::memset(buffer, 0, sizeof(buffer));
-	ssize_t rd = recv(client.fd, buffer, sizeof(buffer), 0);
-	if (rd == 0){
-		return BadRequest;
+int setChunkSize( t_client& client ){
+	if (client.chunkSizeLong != -1){
+		return 0;
 	}
-	else if (rd == -1){
-		return recvError;
+	if (client.chunk.find("\r\n") == std::string::npos){
+		return 1;
 	}
-	else if (client.chunkSizeLong == -1){
-		client.chunk += buffer;
-		if (client.chunk.find("\r\n\r\n") == std::string::npos){
-			return ChunkRecieved;
-		}
-		std::string chunkSizeAsString = client.chunk.substr(0, client.chunk.find("\r\n\r\n"));	
-		char *end = NULL;
-		client.chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
-		if (*end){
-			return BadRequest;
-		}
+	char *end = NULL;
+	std::string chunkSizeAsString = client.chunk.substr(0, client.chunk.find("\r\n"));	
+	client.chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
+	if (client.chunkSizeLong > 0){
+		client.chunk.erase(0, client.chunk.find("\r\n") + 2);
+		return 0;
 	}
-
-	client.chunk.erase(0, client.chunk.find("\r\n") + 2);
-	if (client.chunkSizeLong == 0){
-		return Complete;
+	if (client.chunk != "0\r\n\r\n"){
+		return 1;
 	}
-	if (client.chunk.length() != (unsigned long)client.chunkSizeLong){
-		return BadRequest;
-	}
-	client.body += client.chunk;
-	client.chunk.clear();
-	client.chunkSizeLong = -1;
-	return ChunkRecieved;
+	return 0;
 }
 
-ssize_t Server::recvHeader(t_client& client){
+chunkStatus	Server::recvChunks(t_client& client){
+	ssize_t bytesRead = recvFromClient(client.chunk, client);
+	if (bytesRead == 0){
+		return BadRequest;
+	}
+	else if (bytesRead == -1){
+		return recvError;
+	}
+	if (setChunkSize(client)){
+		return ChunkRecieved;
+	}
+
+	if (client.chunk == "0\r\n\r\n"){
+		return Complete;
+	}
+	if (client.chunkSizeLong > (long)client.chunk.size()){
+		return ChunkRecieved;
+	}
+	else if (client.chunkSizeLong <= (long)client.chunk.size()){
+		client.body += client.chunk.substr(0, client.chunkSizeLong);
+		client.chunk.erase(0, client.chunkSizeLong);
+		client.chunkSizeLong = -1;
+		return ChunkRecieved;
+	}
+	return BadRequest;
+}
+
+
+ssize_t Server::recvFromClient(std::string&data, t_client& client){
 	char c_buffer[HTTP_HEADER_LIMIT + client.location.clientMaxBodySize];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
 	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
-	if (readBytes <= 0){
-		return readBytes;
+	if (readBytes == 0){
+		removeClient(client);
+		return 0;
 	}
-	client.header += c_buffer;
+	if (readBytes  == -1){
+		removeClient(client);
+		return -1;
+	}
+	data += c_buffer;
 	return readBytes;
-}
-
-bool Server::headerFullyRecieved(t_client& client){
-	return (client.header.find("\r\n\r\n") != std::string::npos);
 }
 
 void Server::sendResponse( t_client& client, std::string status ){
 	print(Notification, "recieved request from " + client.ip);
-	print(Notification, client.header);//.substr(0, client.header.find("\n")));
+	print(Notification, client.header.substr(0, client.header.find("\n")));
 
 	if (status != "Ok"){
 		client.header = status;
@@ -199,7 +212,6 @@ void Server::sendResponse( t_client& client, std::string status ){
 	Request request(client);
 
 	Response response(client, request);
-	std::cout << response.returnResponse();
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
 	
 	std::string respStr(response.returnResponse());
@@ -212,25 +224,40 @@ void Server::sendResponse( t_client& client, std::string status ){
 	client.chunkSizeLong = -1;
 }
 
-void Server::handleRequest( t_client& client ){
-	if (!headerFullyRecieved(client)){
-		ssize_t recvValue = recvHeader(client);
-		if (recvValue <= 0){
-			removeClient(client);
-			return ;
-		}
-		if (!headerFullyRecieved(client)){
-			return ;
-		}
-		if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
-			client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
-			client.header.erase(client.header.find("\r\n\r\n"));
-			sendResponse(client, "Ok");
-			return ;
-		}
+int	Server::recieveData(std::string& data, t_client& client){
+	if (client.location.clientMaxBodySize == -1){
+		client.location.clientMaxBodySize = client.config.clientMaxBodySize;
 	}
+	if (data.find("\r\n\r\n") != std::string::npos){
+		return 0;
+	}
+	if (recvFromClient(data, client) <= 0){
+		return 1;
+	}
+	if (data.find("\r\n\r\n") != std::string::npos){
+		return 0;
+	}
+	return 1;
+}
 
-	/* this part will only be reached if the request is chunked */
+void Server::handleRequest( t_client& client ){
+
+
+	if (recieveData(client.header, client)){
+		return ;
+	}
+	if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
+		if (!std::strncmp(client.header.c_str(), "POST", std::strlen("POST")) && recieveData(client.body, client)){
+			return ;
+		}
+		client.header.erase(client.header.find("\r\n\r\n"));
+		sendResponse(client, "Ok");
+		return ;
+	}
+	if (client.body.empty()){
+		client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
+		client.chunk += client.body;
+	}
 	switch (recvChunks(client)){
 		case BadRequest:
 			sendResponse(client, "BadRequest");
@@ -238,6 +265,7 @@ void Server::handleRequest( t_client& client ){
 		case ChunkRecieved:
 			return ;
 		case Complete:
+			client.header.erase(client.header.find("\r\n\r\n"));
 			sendResponse(client, "Ok");
 			return ;
 		case recvError:

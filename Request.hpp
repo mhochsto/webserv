@@ -30,6 +30,7 @@ class Request {
 		std::string		m_invalidRequest;
 		std::string     m_requestHttpVersion;
 		std::string		m_requestBody;
+		std::string		cgi_scriptName;
 		std::string		cgi_queryString;
 		std::string		cgi_pathInfo;
 		bool			cgi_isCgi;
@@ -61,6 +62,7 @@ class Request {
 		const std::string& getClientIP( void );
 		const std::string& getQueryString( void );
 		const std::string& getPathInfo( void );
+		const std::string& getScriptName( void );
 		t_client& getClient(void);
 		bool				getIsCgi( void );
 		bool				getShowDir( void );

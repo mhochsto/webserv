@@ -159,6 +159,7 @@ class Config{
 	static void		addCgiName(std::string line, T& set){
 		set.cgiScript = getFirstWord(line);
 		formatPath(set.cgiScript);
+		set.cgiScript.insert(0, ".");
 		if (!line.empty()){
 			throw configException("invalid CgiName: [" + line + "]");
 

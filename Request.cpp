@@ -7,6 +7,7 @@ Request::Request(t_client& client): m_client(client), cgi_isCgi(false), m_showDi
 	if (parseHeader()){
 		return ;
 	}
+	m_requestBody = client.body;
 	setRedirects();
 	setRoot();
 	setPathInfo();
@@ -35,7 +36,8 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 			m_requestPath.append(m_client.config.index);
 		}
 		else if (!m_client.location.index.empty()){
-			m_requestPath.append(m_client.location.index);
+			m_requestPath.append("/" + m_client.location.index);
+			checkFilePermissions();
 
 		}
 		else {
@@ -48,7 +50,7 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 void Request::checkFilePermissions(void){
 	if (cgi_isCgi){
 		if (!m_client.location.cgiScript.empty()){
-			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : "." + m_client.location.cgiScript;
+			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : m_client.location.cgiScript;
 		}
 		if (access(m_requestPath.c_str(), X_OK) == -1) {
 			m_invalidRequest = "403 Forbidden\n";
@@ -63,12 +65,21 @@ void Request::checkFilePermissions(void){
 }
 
 void Request::setIsCgi(void){
-	if ( !std::strncmp(m_client.location.path.c_str(), "/*", 2) || !std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
-		cgi_isCgi = true;
-		if (m_invalidRequest == "405 Method Not Allowed\n") {
-			m_invalidRequest.clear();
-			validateRequestType(m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
-		}
+	if ( std::strncmp(m_client.location.path.c_str(), "/*", 2) && std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){		return ;
+	}
+	std::cout << "IS CGI" << std::endl;
+	cgi_isCgi = true;
+	if (m_client.location.cgiScript.empty()){
+		std::string extension = "."  + m_client.location.path.substr(2);
+		cgi_scriptName = m_requestPath.substr(0, m_requestPath.find(extension));
+		cgi_scriptName.erase(0, cgi_scriptName.find_last_of('/') + 1);
+	}
+	else {
+		cgi_scriptName = m_client.location.cgiScript;
+	}
+	if (m_invalidRequest == "405 Method Not Allowed\n") {
+		m_invalidRequest.clear();
+		validateRequestType(m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
 	}
 }
 
@@ -94,12 +105,14 @@ void		Request::saveQueryString( void ) {
 
 
 void Request::setRoot( void ) {
-	if (m_client.location.root.empty()){
+	t_location& location = m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath)];
+
+	if (location.root.empty()){
 		m_requestPath.insert(0, "." + m_client.config.root);
 	}
 	else {
-		m_requestPath.erase(0, m_client.location.path.length());
-		m_requestPath.insert(0, "." + m_client.location.root + (m_requestPath.empty() ? "/" : ""));
+		m_requestPath.erase(0, location.path.length());
+		m_requestPath.insert(0, "." + location.root + (m_requestPath.empty() ? "/" : ""));
 	}
 }
 
@@ -128,7 +141,9 @@ int Request::validateAndSetRequestLine( const std::string& line ) {
 	std::string word;
 	while (std::getline(sstream, word, ' ')){
 		vec.push_back(word);
-		if (vec.size() == 4) break;
+		if (vec.size() == 4){
+			break;
+		}
 	}
 	if (vec.size() != 3) {
 		m_invalidRequest = "400 Bad Request\n";
@@ -138,7 +153,7 @@ int Request::validateAndSetRequestLine( const std::string& line ) {
 	m_requestPath = vec.at(1);
 	m_requestHttpVersion = vec.at(2);
 	if ( !std::strcmp(m_requestHttpVersion.c_str(), "HTTP/1.1\r\n")){
-		m_invalidRequest = "405 HTTP Version Not Supported\n";
+		m_invalidRequest = "505 HTTP Version Not Supported\n";
 		return 1;
 	}
 	saveQueryString();
@@ -206,6 +221,8 @@ const std::string& Request::getQueryString( void ) { return cgi_queryString;}
 const std::string& Request::getClientIP( void ) { return m_client.ip;}
 
 const std::string& Request::getPathInfo( void ) {return cgi_pathInfo;}
+
+const std::string& Request::getScriptName( void ) { return cgi_scriptName;}
 
 t_client& Request::getClient( void ){ return m_client;}
 

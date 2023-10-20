@@ -44,8 +44,8 @@ class Server {
 
 		void 		sendResponse(t_client& client, std::string status );
 		chunkStatus	recvChunks(t_client& client);	
-		ssize_t 	recvHeader(t_client& client);
-		bool 		headerFullyRecieved(t_client& client);
+		ssize_t 	recvFromClient(std::string&data, t_client& client);
+		int			recieveData(std::string& data, t_client& client);
 
 };
 

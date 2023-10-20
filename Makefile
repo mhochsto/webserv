@@ -1,6 +1,6 @@
 NAME :=	webserv
 
-CPPFLAGS := -Wall -Werror -Wextra -std=c++98
+CPPFLAGS := -Wall -Werror -Wextra -std=c++98 -g
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 POSTCOMPILE = mv -f $*.Td $*.d && touch $@
 
@@ -12,7 +12,7 @@ SRC :=	main.cpp		\
 		Server.cpp		\
 		Request.cpp		\
 		Response.cpp	\
-		CgiHandler.cpp
+		CgiHandler.cpp	
 
 OBJ := $(SRC:%.cpp=%.o)
 

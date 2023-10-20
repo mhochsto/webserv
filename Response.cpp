@@ -6,7 +6,6 @@
 # include "CgiHandler.hpp"
 
 Response::Response(t_client& client, Request& request ): m_client(client), m_request(request) {
-	/* serve errorpage straight away if request parsing found an issue */
 	if (!request.getInvalidRequest().empty()){
 		createErrorResponse(request.getInvalidRequest());
 		return ;
@@ -26,7 +25,7 @@ Response::Response(t_client& client, Request& request ): m_client(client), m_req
 
 void Response::executeCGI(void){
 	CgiHandler cgi(m_request);
-
+	createResponse("200 Ok\n", cgi.getOutput());
 }
 
 
@@ -89,7 +88,7 @@ void Response::putResponse( Request& request ) {
 
 std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
-	file.open(fileName.c_str());	
+	file.open(fileName.c_str());
 	if (!file)
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
 	std::stringstream sstream;
@@ -108,7 +107,7 @@ void Response::getResponse( Request& request ){
 
 void Response::postResponse( Request& request ){
 	//request.setPath(request.getPath() + "?" + request.getBody());
-	getResponse(request);
+	createResponse("200 Ok\n", request.getClient().body);
 }
 
 void Response::deleteResponse( Request& request ){
@@ -125,11 +124,6 @@ const char *Response::returnResponse( void ) const {return (m_response.c_str());
 
 int  Response::getSize( void ) const {return (m_responseSize);}
 
-/* STDIN && Env still missing */
-void Response::cgiResponse( std::string path, Request& request, std::string rawUrlParameter ){
-	CgiHandler cgi(*this, request, m_client.config, path, rawUrlParameter);
-	createResponse("200 OK\n", cgi.getOutput());
-}
 
 std::ostream    &operator<<(std::ostream &os, const Response &rhs) {
 	os << "What's in the response Class!" << std::endl;

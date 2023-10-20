@@ -92,7 +92,7 @@ void formatPath(std::string& str){
 	if (str.at(0) != '/')
 		str = "/"+ str;
 }
-
+/*
 std::ostream	&operator<<(std::ostream &os, const t_config &rhs) {
 	os << "Whats in the Config Struct named serv!" << std::endl;
 	os << "\tserv.fd: " << rhs.fd << std::endl;
@@ -130,3 +130,4 @@ std::ostream	&operator<<(std::ostream &os, const t_config &rhs) {
 	}
 	return (os);
 }
+*/
