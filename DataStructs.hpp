@@ -57,6 +57,8 @@ typedef struct s_config {
     locationMap							locations;
 } t_config;
 
+enum RecieveState { header, body, chunk, done};
+
 typedef struct s_client {
 	s_client(){
 		fd = 0;
@@ -72,7 +74,8 @@ typedef struct s_client {
 	std::string chunk;
 	t_config config;
 	t_location location;
-	chunkStatus chunkState;
+	RecieveState	recieving;
+	long exptectedBodySize;
 } t_client;
 
 std::ostream	&operator<<(std::ostream &os, const t_config &rhs); // written in the utils.cpp

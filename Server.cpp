@@ -119,6 +119,7 @@ void Server::addConnection( int serverFD ){
 	newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
 	setConfig(newClient);
 	newClient.chunkSizeLong = -1;
+	newClient.recieving = header;
 	m_clients[newClient.fd] = newClient;
 	print(Notification, "new Client added (ip): " + newClient.ip);
 }
@@ -138,58 +139,32 @@ void Server::removeClient( t_client& client ){
 	m_clients.erase(client.fd);
 }
 
-int setChunkSize( t_client& client ){
+void Server::setChunkSize( t_client& client ){
 	if (client.chunkSizeLong != -1){
-		return 0;
+		return ;
 	}
 	if (client.chunk.find("\r\n") == std::string::npos){
-		return 1;
+		return ;
 	}
 	char *end = NULL;
 	std::string chunkSizeAsString = client.chunk.substr(0, client.chunk.find("\r\n"));	
+	std::cerr << "chunk size: " << chunkSizeAsString << std::endl;
 	client.chunkSizeLong = std::strtol(chunkSizeAsString.c_str(), &end, 16);
-	if (client.chunkSizeLong > 0){
-		client.chunk.erase(0, client.chunk.find("\r\n") + 2);
-		return 0;
+	client.chunk.erase(0, client.chunk.find("\r\n") + 2);
+	if (client.chunkSizeLong == 0 && client.chunk == "\r\n"){
+		client.recieving = done;
 	}
-	if (client.chunk != "0\r\n\r\n"){
-		return 1;
-	}
-	return 0;
 }
 
-chunkStatus	Server::recvChunks(t_client& client){
-	ssize_t bytesRead = recvFromClient(client.chunk, client);
-	if (bytesRead == 0){
-		return BadRequest;
-	}
-	else if (bytesRead == -1){
-		return recvError;
-	}
-	if (setChunkSize(client)){
-		return ChunkRecieved;
-	}
 
-	if (client.chunk == "0\r\n\r\n"){
-		return Complete;
-	}
-	if (client.chunkSizeLong > (long)client.chunk.size()){
-		return ChunkRecieved;
-	}
-	else if (client.chunkSizeLong <= (long)client.chunk.size()){
-		client.body += client.chunk.substr(0, client.chunkSizeLong);
-		client.chunk.erase(0, client.chunkSizeLong);
-		client.chunkSizeLong = -1;
-		return ChunkRecieved;
-	}
-	return BadRequest;
-}
 
 
 ssize_t Server::recvFromClient(std::string&data, t_client& client){
 	char c_buffer[HTTP_HEADER_LIMIT + client.location.clientMaxBodySize];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
 	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
+	std::cout << "["<<c_buffer<<"]";
+	sleep(0.03);
 	if (readBytes == 0){
 		removeClient(client);
 		return 0;
@@ -222,6 +197,7 @@ void Server::sendResponse( t_client& client, std::string status ){
 	client.body.clear();
 	client.chunk.clear();
 	client.chunkSizeLong = -1;
+	client.recieving = header;
 }
 
 int	Server::recieveData(std::string& data, t_client& client){
@@ -240,9 +216,77 @@ int	Server::recieveData(std::string& data, t_client& client){
 	return 1;
 }
 
+
+void Server::setRecieveState(t_client& client){
+	if (client.header.find("\r\n\r\n") == std::string::npos){
+		return ;
+	}
+	if (client.header.find("Transfer-Encoding: chunked\r\n") != std::string::npos){
+		client.recieving = chunk;
+		client.chunk = client.header.substr(client.header.find("\r\n\r\n") + 4);
+	}
+	else if (client.header.find("Content-Length:") != std::string::npos){
+		client.recieving = body;
+		client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
+		if (client.header.find_first_of("0123456789") == std::string::npos){
+			client.exptectedBodySize = 0;
+			return ;
+		}
+		client.exptectedBodySize = std::strtol(client.header.substr(client.header.find_first_of("0123456789")).c_str(), NULL, 10);
+	}
+	else {
+		client.recieving = done;
+	}
+	client.header.erase(client.header.find("\r\n\r\n"));
+}
+
+void Server::saveChunk(t_client& client){
+	if ((long)client.chunk.size() < client.chunkSizeLong){
+		return ;
+	}
+	else if ((long)client.chunk.size() > client.chunkSizeLong){
+		client.body += client.chunk.substr(0, client.chunkSizeLong);
+		client.chunk.erase(0, client.chunkSizeLong);
+		setChunkSize(client);
+	}
+	else {
+		client.body += client.chunk;
+		client.chunk.clear();
+	}
+}
+
 void Server::handleRequest( t_client& client ){
 
-
+	switch (client.recieving)
+	{
+	case header:
+		if (recvFromClient(client.header, client) <= 0){
+			return ;	
+		}
+		setRecieveState(client);
+		break ;
+	case body:
+		if (recvFromClient(client.body, client) <= 0){
+			return ;
+		}
+		if ((long)client.body.size() == client.exptectedBodySize){
+			client.recieving = done;
+		}
+		return ;
+	case chunk:
+		if (recvFromClient(client.chunk, client) <= 0){
+			return ;
+		}
+		setChunkSize(client);
+		saveChunk(client);
+		break ;
+	default:
+		break;
+	}
+	if (client.recieving == done){
+		sendResponse(client, "Ok");
+	}
+/*
 	if (recieveData(client.header, client)){
 		return ;
 	}
@@ -272,6 +316,7 @@ void Server::handleRequest( t_client& client ){
 			removeClient(client);
 			return ;
 	}
+*/
 }
 
 Server::~Server() {
