@@ -58,7 +58,7 @@ void Response::createResponse(std::string rspType, std::string file){
 	response << timestamp();
 	response << "Server: webserv\nContent-Length: ";
 	response << body.str().length();
-	response << "\nConnection: Closed\nContent-Type: text/html\n\n";
+	response << "\nConnection: keep-alive\nContent-Type: text/html\n\n";
 	response << body.str();
 	m_response = response.str();
 	m_responseSize = m_response.length();

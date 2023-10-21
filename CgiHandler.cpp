@@ -25,24 +25,25 @@ https://www6.uniovi.es/~antonio/ncsa_httpd/cgi/env.html */
 CgiHandler::CgiHandler( Request& request ) : m_request(request) {
 
 	std::stringstream ssport;
+	std::stringstream ssSize;
 	ssport << request.getClient().config.port;
+	ssSize << request.getBody().size();
 	m_envStr.push_back("SERVER_SOFTWARE=webserv/1.0");
 	m_envStr.push_back("SERVER_NAME=" + request.get("Host"));
 	m_envStr.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	m_envStr.push_back("SERVER_PROTOCOL=HTTP/1.1");
 	m_envStr.push_back("SERVER_PORT=" + ssport.str());
 	m_envStr.push_back("REQUEST_METHOD=" + request.getType());
-	m_envStr.push_back("PATH_INFO=/directory/youpi.bla");//+ request.getPath());
+	m_envStr.push_back("PATH_INFO=" + request.getPathInfo());
 	m_envStr.push_back("PATH_TRANSLATED=" + request.getClient().config.root + "/" + request.getPath());
 	m_envStr.push_back("SCRIPT_NAME=" + request.getScriptName());
 	m_envStr.push_back("QUERY_STRING=" + request.getQueryString());
 	m_envStr.push_back("REMOTE_HOST=" + request.getClientIP());
 	m_envStr.push_back("REMOTE_ADDR=" + request.getClientIP());
-	m_envStr.push_back("CONTENT_TYPE=" + request.getBody());
-	m_envStr.push_back("CONTENT_LENGTH=" + request.get("Content-Length"));
+	m_envStr.push_back("CONTENT_TYPE=html");
+	m_envStr.push_back("CONTENT_LENGTH=" + ssSize.str());
 	m_envStr.push_back("HTTP_ACCEPT=" + request.get("Accept"));
 	m_envStr.push_back("HTTP_USER_AGENT=" + request.get("User-Agent"));
-
 	for(std::vector<std::string>::iterator it = m_envStr.begin(); it != m_envStr.end(); ++it){
 		m_envCharPtr.push_back((char *)it->c_str());
 	}
@@ -50,22 +51,14 @@ CgiHandler::CgiHandler( Request& request ) : m_request(request) {
 	execute();
 }
 
-
 void CgiHandler::execute( void ) {
 	char *argv[] = { (char *)(m_request.getClient().location.cgiScript.empty() ? m_request.getPath().c_str() : m_request.getClient().location.cgiScript.c_str()) , NULL};
 	int inFile = open(".tempfile0", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
 	int outFile = open(".tempfile1", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
-	
+	std::cout << "executing: " << argv[0] << std::endl;
 	if (m_request.getType() == "POST") {
-		write(inFile, m_request.getBody().c_str(), m_request.getBody().length());
+		write(inFile, m_request.getBody().c_str(), m_request.getBody().size());
 	}
-
-/*
-	for(std::vector<char *>::iterator it = m_envCharPtr.begin(); it != m_envCharPtr.end(); ++it){
-		std::cout << "[environ] " << *it << std::endl;
-	}
-*/
-
 	pid_t pid = fork();
 	if (pid ==  -1)																throw std::runtime_error(SYS_ERROR("fork"));
 	if (pid == 0) {
@@ -73,7 +66,9 @@ void CgiHandler::execute( void ) {
 		if (dup2(inFile, STDIN_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
 		close(inFile);
 		close(outFile);
-		if (execve(argv[0], argv , m_envCharPtr.data()) == -1)									throw std::runtime_error(SYS_ERROR("execve"));//delete later //but why???
+		if (execve(argv[0], argv , m_envCharPtr.data()) == -1){
+			perror("execve");
+		}
 	}
 	waitpid(pid, NULL, 0);
 	close(outFile);

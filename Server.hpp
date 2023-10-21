@@ -43,15 +43,11 @@ class Server {
 		void removeClient( t_client& client );
 
 		void 		sendResponse(t_client& client, std::string status );
-		void 		setChunkSize( t_client& client );
+		int 		setChunkSize( t_client& client );
 		void 		setRecieveState(t_client& client);
 		void 		saveChunk(t_client& client);
 		ssize_t 	recvFromClient(std::string&data, t_client& client);
-		int			recieveData(std::string& data, t_client& client);
 
 };
-
-# define VALID_REQUESTS {"GET", "POST", "DELETE" }
-# define REQUEST_FUNCTIONS {&Server::get, &Server::post, &Server::del}
 
 #endif
