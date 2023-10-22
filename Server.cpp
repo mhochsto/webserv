@@ -155,13 +155,10 @@ ssize_t Server::recvFromClient(std::string&data, t_client& client){
 	return readBytes;
 }
 
-void Server::sendResponse( t_client& client, std::string status ){
+void Server::sendResponse( t_client& client){
 	print(Notification, "recieved request from " + client.ip);
 	print(Notification, client.header.substr(0, client.header.find("\n")));
 
-	if (status != "Ok"){
-		client.header = status;
-	}
 	Request request(client);
 
 	Response response(client, request);
@@ -182,6 +179,7 @@ void Server::setRecieveState(t_client& client){
 	if (client.header.find("\r\n\r\n") == std::string::npos){
 		return ;
 	}
+
 	if (client.header.find("Transfer-Encoding: chunked\r\n") != std::string::npos){
 		client.recieving = chunk;
 		client.chunk = client.header.substr(client.header.find("\r\n\r\n") + 4);
@@ -189,11 +187,13 @@ void Server::setRecieveState(t_client& client){
 	else if (client.header.find("Content-Length:") != std::string::npos){
 		client.recieving = body;
 		client.body = client.header.substr(client.header.find("\r\n\r\n") + 4);
-		if (client.header.find_first_of("0123456789") == std::string::npos){
+		std::string contentLength = client.header.substr(client.header.find("Content-Length:") + std::strlen("Content-Length:"));
+		contentLength.resize(contentLength.find_first_of('\r'));
+		if (contentLength.find_first_of("0123456789") == std::string::npos){
 			client.exptectedBodySize = 0;
 			return ;
 		}
-		client.exptectedBodySize = std::strtol(client.header.substr(client.header.find_first_of("0123456789")).c_str(), NULL, 10);
+		client.exptectedBodySize = std::strtol(contentLength.c_str(), NULL, 10);
 		if (client.exptectedBodySize == (long)client.body.size()){
 			client.recieving = done;
 		}
@@ -218,6 +218,8 @@ int Server::setChunkSize( t_client& client ){
 	return 0;
 }
 
+
+/* +2 for "\r\n" */
 void Server::saveChunk(t_client& client){
 	if (client.chunkSizeLong == 0 ){
 		if (client.chunk == "\r\n"){
@@ -225,6 +227,7 @@ void Server::saveChunk(t_client& client){
 		}
 		return ;
 	}
+	
 	if ((long)client.chunk.size() < client.chunkSizeLong + 2){
 		return ;
 	}
@@ -243,41 +246,40 @@ void Server::saveChunk(t_client& client){
 
 void Server::handleRequest( t_client& client ){
 
-	switch (client.recieving)
-	{
-	case header:
-		if (recvFromClient(client.header, client) <= 0){
-			return ;	
-		}
-		setRecieveState(client);
-		break ;
-	case body:
-		if (recvFromClient(client.body, client) <= 0){
+	switch (client.recieving){
+		case header:
+			if (recvFromClient(client.header, client) <= 0){
+				return ;	
+			}
+			setRecieveState(client);
+			break ;
+		case body:
+			if (recvFromClient(client.body, client) <= 0){
+				return ;
+			}
+			if ((long)client.body.size() == client.exptectedBodySize){
+				client.recieving = done;
+			}
 			return ;
+		case chunk:
+			if (recvFromClient(client.chunk, client) <= 0){
+				return ;
+			}
+			if (!setChunkSize(client)){
+				saveChunk(client);
+			}
+			break ;
+		default:
+			break;
 		}
-		std::cout << "body size: " << client.body.size() << "expected: " << client.exptectedBodySize << std::endl;
-		if ((long)client.body.size() == client.exptectedBodySize){
-			client.recieving = done;
-		}
-		return ;
-	case chunk:
-		if (recvFromClient(client.chunk, client) <= 0){
-			return ;
-		}
-		if (!setChunkSize(client)){
-			saveChunk(client);
-		}
-		break ;
-	default:
-		break;
-	}
+
 	if (client.recieving == done){
-		sendResponse(client, "Ok");
+		sendResponse(client);
 	}
 }
 
 Server::~Server() {
-	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+	for (std::vector<pollfd>::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it){
 		close(it->fd);
 	}
 }
