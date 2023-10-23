@@ -75,9 +75,9 @@ typedef struct s_client {
 	std::string 			body;
 	std::string 			chunk;
 	RecieveState			recieving;
-	std::vector<pollfd>& 	socketVector;
-	t_config& 				config;
-	t_location&				location;
+	std::vector<pollfd> 	socketVector;
+	t_config 				config;
+	t_location				location;
 
 	s_client&	operator=(s_client copy){
 		fd = copy.fd;

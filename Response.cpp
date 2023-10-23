@@ -14,13 +14,14 @@ Response::Response(t_client& client, Request& request ): m_client(client), m_req
 		executeCGI();
 		return ;
 	}
+
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("PUT", &Response::putResponse));
 
-	std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
-	(this->*it->second)(request);
+	(this->*m_responseMap.at(request.getType()))(request);
+
 }
 
 void Response::executeCGI(void){

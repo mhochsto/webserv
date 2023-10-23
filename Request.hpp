@@ -23,6 +23,24 @@
 # define HTTP_HEADER_LIMIT 8192
 
 class Request {
+	public:
+		Request(t_client& client);
+		~Request();
+	
+		bool        contains( std::string str ) const;
+		std::string get( std::string str ) const;
+		const std::string& getType( void );
+		const std::string& getPath( void );
+		const std::string& getBody( void );
+		const std::string& getInvalidRequest( void );
+		const std::string& getClientIP( void );
+		const std::string& getQueryString( void );
+		const std::string& getPathInfo( void );
+		const std::string& getScriptName( void );
+		t_client& getClient(void);
+		bool				getIsCgi( void );
+		bool				getShowDir( void );
+		void		setPath( std::string newPath );
 	private:
 		t_client&		m_client;
 		std::string     m_requestType;
@@ -49,24 +67,6 @@ class Request {
 		void		checkIfDirectoryShouldBeShown( void );
 		void 		validateRequestType(const t_location& location);
 
-	public:
-		Request(t_client& client);
-		~Request();
-	
-		bool        contains( std::string str ) const;
-		std::string get( std::string str ) const;
-		const std::string& getType( void );
-		const std::string& getPath( void );
-		const std::string& getBody( void );
-		const std::string& getInvalidRequest( void );
-		const std::string& getClientIP( void );
-		const std::string& getQueryString( void );
-		const std::string& getPathInfo( void );
-		const std::string& getScriptName( void );
-		t_client& getClient(void);
-		bool				getIsCgi( void );
-		bool				getShowDir( void );
-		void		setPath( std::string newPath );
 
 };
 

@@ -202,7 +202,7 @@ std::string Request::getLocationName( void ) {
 	return closestMatchingLocation(m_client.config.locations , m_requestPath);
 } 
 
-std::string Request::get( std::string str) const {return (m_requestData.find(str) == m_requestData.end() ? "" : m_requestData.find(str)->second);}
+std::string Request::get( std::string str) const {return (m_requestData.find(str) == m_requestData.end() ? "" : m_requestData.at(str));}
 
 bool Request::contains(std::string str) const {return m_requestData.find(str) != m_requestData.end();}
 
