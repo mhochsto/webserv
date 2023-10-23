@@ -30,9 +30,8 @@ typedef std::map<std::string, std::string> stringMap;
 
 /* default server name muss im parsing noch entfernt werden */
 typedef struct s_config {
-    s_config() {
-
-        fd = UNSET;
+	/* alles mit initialiser list ?*/
+    s_config() : fd(UNSET) {
 		port = SERVER_LISTEN;
 		clientMaxBodySize = SERVER_CLIENT_MAX_BODY_SIZE;
 		root = SERVER_ROOT;
@@ -58,21 +57,21 @@ typedef struct s_config {
 } t_config;
 
 typedef struct s_client {
-	s_client(){
+	s_client(t_config& conf): config(conf){
 		fd = 0;
 		serverFD = 0;
 		chunkSizeLong = 0;
 	}
-	int fd;
-	int serverFD;
-	long chunkSizeLong;
-	std::string ip;
-	std::string header;
-	std::string body;
-	std::string chunk;
-	t_config config;
-	t_location location;
-	chunkStatus chunkState;
+	int 			fd;
+	int 			serverFD;
+	long 			chunkSizeLong;
+	std::string 	ip;
+	std::string 	header;
+	std::string 	body;
+	std::string 	chunk;
+	t_config& 		config;
+	t_location 		location;
+	chunkStatus 	chunkState;
 } t_client;
 
 std::ostream	&operator<<(std::ostream &os, const t_config &rhs); // written in the utils.cpp

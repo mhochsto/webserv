@@ -18,39 +18,34 @@
 
 class configException : public std::exception
 {	
-	private:
-		std::string msg;
    	public:
 		configException(std::string errorMsg): msg(errorMsg){}
 		~configException() throw () {} 
 		const char* what() const throw() { return msg.c_str(); }
+	private:
+		std::string msg;
 };
 
 class Config{
-	typedef void (*fLocation)(std::string, t_location&);
-	typedef void (*fConfig)(std::string, t_config&);
+	public:
+		Config( std::string configFileName );
+		~Config();
+		std::vector<t_config>&		getServerConfig( void ) { return m_serverConfig;}
 
 	private:
-		std::set<std::string> 			allowedIdentifiersLocation;
-		std::set<std::string> 			allowedIdentifiersServer;
-		std::vector<t_config>   		m_serverConfig;
+		typedef void (*fLocation)(std::string, t_location&);
+		typedef void (*fConfig)(std::string, t_config&);
+		
+		std::vector<t_config>   			m_serverConfig;
 		std::map < std::string, fLocation >	m_locationFunctions;
 		std::map < std::string, fConfig > 	m_configFunctions;
 
-		class FunctionWrapper {
-			private:
-				fLocation	locationPtr;
-				fConfig		configPtr;
-			public:
-				FunctionWrapper(fLocation ptr): locationPtr(ptr){}
-				FunctionWrapper(fConfig ptr): configPtr(ptr){}
-				fLocation 	location(void) { return locationPtr;}
-				fConfig		config(void) { return configPtr;}
-		};
 
 		std::string					getBlock( std::string type, std::string& in );
 		void						addLocation(std::string newLocation, t_config& serverConfig);
 		void						addServerConfig(std::string& in);
+		fLocation 					functionWrapper(fLocation ptr){ return ptr; }
+		fConfig 					functionWrapper(fConfig ptr){ return ptr; }
 
 	template <typename T>
 	static void addIndex(std::string line, T& set){
@@ -199,10 +194,5 @@ class Config{
 		set.errorPages[key] = value;
 	}
 
-	public:
-		Config( std::string configFileName );
-		~Config();
-
-		std::vector<t_config>		getServerConfig( void );
 };
 #endif

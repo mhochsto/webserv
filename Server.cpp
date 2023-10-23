@@ -97,10 +97,11 @@ void Server::run( void ){
 }
 
 void Server::addConnection( int serverFD ){
-	t_client newClient;
+	t_client newClient(setConfig(serverFD));
 	pollfd newClientPoll;
 	struct sockaddr_in newClientAddr;
 	socklen_t addrlen = sizeof(newClientAddr);
+	std::memset(&newClientAddr, 0, sizeof(newClientAddr));
 	std::memset(&newClientPoll, 0, sizeof(newClientPoll));
 
 	newClientPoll.fd = accept(serverFD, NULL, NULL);
@@ -117,17 +118,17 @@ void Server::addConnection( int serverFD ){
 	newClient.fd = newClientPoll.fd;
 	newClient.serverFD = serverFD;
 	newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
-	setConfig(newClient);
 	newClient.chunkSizeLong = -1;
 	m_clients[newClient.fd] = newClient;
 	print(Notification, "new Client added (ip): " + newClient.ip);
 }
 
-void Server::setConfig(t_client& client){
+t_config& Server::setConfig(int serverFD){
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		if (it->fd == client.serverFD)
-			client.config = *it;
+		if (it->fd == serverFD)
+			return *it;
 	}
+	return *m_serverConfig.begin();
 }
 
 void Server::removeClient( t_client& client ){
@@ -204,7 +205,7 @@ ssize_t Server::recvFromClient(std::string&data, t_client& client){
 
 void Server::sendResponse( t_client& client, std::string status ){
 	print(Notification, "recieved request from " + client.ip);
-	print(Notification, client.header.substr(0, client.header.find("\n")));
+	print(Notification, client.header);//.substr(0, client.header.find("\n")));
 
 	if (status != "Ok"){
 		client.header = status;
@@ -243,9 +244,7 @@ int	Server::recieveData(std::string& data, t_client& client){
 void Server::handleRequest( t_client& client ){
 
 
-	if (recieveData(client.header, client)){
-		return ;
-	}
+
 	if (client.header.find("Transfer-Encoding: chunked\r\n") == std::string::npos){
 		if (!std::strncmp(client.header.c_str(), "POST", std::strlen("POST")) && recieveData(client.body, client)){
 			return ;

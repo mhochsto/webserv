@@ -26,30 +26,25 @@
 class Config;
 
 class Server {
+	public:
+		Server( std::vector<t_config> serverConfig );
+		~Server();
+		void run( void );
+		void removeClient( t_client& client );
+		void CreateServerSocket( t_config& server );
+		bool isServerSocket(int fd);
 	private:
 		std::vector<pollfd> 	m_sockets;
 		std::vector<t_config>	m_serverConfig;
 		std::map<int, t_client> m_clients;
 
-	public:
-		Server( std::vector<t_config> serverConfig );
-		~Server();
-		void CreateServerSocket( t_config& server );
-		void run( void );
-		void addConnection( int serverFD );
-		void handleRequest( t_client& client );
-		void setConfig( t_client& client );
-		bool isServerSocket(int fd);
-		void removeClient( t_client& client );
-
+		void 		addConnection( int serverFD );
+		void 		handleRequest( t_client& client );
+		t_config&	setConfig(int serverFD);
 		void 		sendResponse(t_client& client, std::string status );
 		chunkStatus	recvChunks(t_client& client);	
 		ssize_t 	recvFromClient(std::string&data, t_client& client);
 		int			recieveData(std::string& data, t_client& client);
-
 };
-
-# define VALID_REQUESTS {"GET", "POST", "DELETE" }
-# define REQUEST_FUNCTIONS {&Server::get, &Server::post, &Server::del}
 
 #endif

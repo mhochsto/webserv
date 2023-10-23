@@ -1,31 +1,24 @@
 # include "Config.hpp"
 
 Config::Config(std::string configFileName ){
-	m_locationFunctions["index"] = Config::FunctionWrapper(&Config::addIndex<t_location>).location();
-	m_locationFunctions["allow_methods"] = Config::FunctionWrapper(&Config::addAllowedMethods<t_location>).location();
-	m_locationFunctions["autoindex"] = Config::FunctionWrapper(&Config::addAutoIndex<t_location>).location();
-	m_locationFunctions["proxy_pass"] = Config::FunctionWrapper(&Config::addProxyPass<t_location>).location();
-	m_locationFunctions["allowed_cgi_extension"] = Config::FunctionWrapper(&Config::addAllowedCgiExtension<t_location>).location();
-	m_locationFunctions["client_max_body_size"] = Config::FunctionWrapper(&Config::addClientMaxBodySize<t_location>).location();
-	m_locationFunctions["root"] = Config::FunctionWrapper(&Config::addRoot<t_location>).location();
-	m_locationFunctions["cgi_script"] = Config::FunctionWrapper(&Config::addCgiName<t_location>).location();
-	
-	for(std::map < std::string, fLocation >::iterator it = m_locationFunctions.begin(); it != m_locationFunctions.end(); ++it){
-		allowedIdentifiersLocation.insert(it->first);
-	}
+	m_locationFunctions["index"] = functionWrapper(&Config::addIndex<t_location>);
+	m_locationFunctions["allow_methods"] = functionWrapper(&Config::addAllowedMethods<t_location>);
+	m_locationFunctions["autoindex"] = functionWrapper(&Config::addAutoIndex<t_location>);
+	m_locationFunctions["proxy_pass"] = functionWrapper(&Config::addProxyPass<t_location>);
+	m_locationFunctions["allowed_cgi_extension"] = functionWrapper(&Config::addAllowedCgiExtension<t_location>);
+	m_locationFunctions["client_max_body_size"] = functionWrapper(&Config::addClientMaxBodySize<t_location>);
+	m_locationFunctions["root"] = functionWrapper(&Config::addRoot<t_location>);
+	m_locationFunctions["cgi_script"] = functionWrapper(&Config::addCgiName<t_location>);
 
-	m_configFunctions["index"] = Config::FunctionWrapper(&Config::addIndex<t_config>).config();
-	m_configFunctions["rewrite"] = Config::FunctionWrapper(&Config::addRedirects<t_config>).config();
-	m_configFunctions["server_name"] = Config::FunctionWrapper(&Config::addServerName<t_config>).config();
-	m_configFunctions["listen"] = Config::FunctionWrapper(&Config::addListen<t_config>).config();
-	m_configFunctions["client_max_body_size"] = Config::FunctionWrapper(&Config::addClientMaxBodySize<t_config>).config();
-	m_configFunctions["root"] = Config::FunctionWrapper(&Config::addRoot<t_config>).config();
-	m_configFunctions["error_page"] = Config::FunctionWrapper(&Config::addErrorPages<t_config>).config();
-	
-	for(std::map < std::string, fConfig >::iterator it = m_configFunctions.begin(); it != m_configFunctions.end(); ++it){
-		allowedIdentifiersServer.insert(it->first);
-	}
 
+	m_configFunctions["index"] = functionWrapper(&Config::addIndex<t_config>);
+	m_configFunctions["rewrite"] = functionWrapper(&Config::addRedirects<t_config>);
+	m_configFunctions["server_name"] = functionWrapper(&Config::addServerName<t_config>);
+	m_configFunctions["listen"] = functionWrapper(&Config::addListen<t_config>);
+	m_configFunctions["client_max_body_size"] = functionWrapper(&Config::addClientMaxBodySize<t_config>);
+	m_configFunctions["root"] = functionWrapper(&Config::addRoot<t_config>);
+	m_configFunctions["error_page"] = functionWrapper(&Config::addErrorPages<t_config>);
+	
 	std::fstream infile(configFileName.c_str());
 	if (!infile) throw std::runtime_error(SYS_ERROR("open"));
 	std::stringstream sstream;
@@ -92,10 +85,11 @@ void Config::addLocation(std::string newLocation, t_config& serverConfig) {
 		}
 		line.resize(line.length() - 1);
 		std::string identifier = getFirstWord(line);
-		if (allowedIdentifiersLocation.find(identifier) == allowedIdentifiersLocation.end()){
+		try {
+			(*m_locationFunctions.at(identifier))(line, location);
+		} catch (std::exception &e){
 			throw configException("invalid Identifier in("+ locationPath + "): " + identifier);
 		}
-		(*m_locationFunctions[identifier])(line, location);
 	}
 	location.path = locationPath;
 	serverConfig.locations[locationPath] = location;
@@ -103,11 +97,11 @@ void Config::addLocation(std::string newLocation, t_config& serverConfig) {
 
 
 
-void Config::addServerConfig(std::string& in){
+void Config::addServerConfig(std::string& in) {
 	std::string serverBlock = getBlock("server", in);
 	t_config serverConfig;
 	
-	while (serverBlock.find("location") != std::string::npos){
+	while (serverBlock.find("location") != std::string::npos) {
 		addLocation(getBlock("location", serverBlock), serverConfig);
 	}
 	serverBlock.erase(0, serverBlock.find('\n') + 1);
@@ -116,7 +110,7 @@ void Config::addServerConfig(std::string& in){
 	std::stringstream sstream(serverBlock.c_str());
 	std::string line;
 	while (std::getline(sstream, line)){
-		if (line.find_first_not_of(WHITESPACE) == std::string::npos){
+		if (line.find_first_not_of(WHITESPACE) == std::string::npos) {
 			 continue ;
 		}
 		if (line.at(line.length() - 1) != ';'){
@@ -127,13 +121,11 @@ void Config::addServerConfig(std::string& in){
 		if (line.find_first_of(WHITESPACE) == 0){
 			line.erase(0, line.find_first_not_of(WHITESPACE));
 		}
-		if (allowedIdentifiersServer.find(identifier) == allowedIdentifiersServer.end()){
-			throw configException("invalid Identifier in Server Block: " + identifier);
+		try {
+			(*m_configFunctions.at(identifier))(line, serverConfig);
+		} catch (std::exception &e){
+			throw configException("invalid Identifier in Server: " + identifier);
 		}
-		(*m_configFunctions[identifier])(line, serverConfig);
 	}
 	m_serverConfig.push_back(serverConfig);
 }
-
-
-std::vector<t_config>   Config::getServerConfig( void ) { return m_serverConfig;}
