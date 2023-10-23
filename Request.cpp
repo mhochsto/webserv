@@ -65,9 +65,9 @@ void Request::checkFilePermissions(void){
 }
 
 void Request::setIsCgi(void){
-	if ( std::strncmp(m_client.location.path.c_str(), "/*", 2) && std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){		return ;
+	if ( std::strncmp(m_client.location.path.c_str(), "/*", 2) && std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
+		return ;
 	}
-	std::cout << "IS CGI" << std::endl;
 	cgi_isCgi = true;
 	if (m_client.location.cgiScript.empty()){
 		std::string extension = "."  + m_client.location.path.substr(2);
@@ -202,7 +202,7 @@ std::string Request::getLocationName( void ) {
 	return closestMatchingLocation(m_client.config.locations , m_requestPath);
 } 
 
-std::string Request::get( std::string str) const {return (m_requestData.find(str) == m_requestData.end() ? "" : m_requestData.find(str)->second);}
+std::string Request::get( std::string str) const {return (m_requestData.find(str) == m_requestData.end() ? "" : m_requestData.at(str));}
 
 bool Request::contains(std::string str) const {return m_requestData.find(str) != m_requestData.end();}
 

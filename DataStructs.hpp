@@ -7,7 +7,7 @@
 #include <string>
 #include <sstream>
 
-enum chunkStatus {BadRequest,ChunkRecieved, Complete, recvError };
+# include <poll.h>
 
 typedef struct s_location {
 	s_location() {
@@ -56,23 +56,46 @@ typedef struct s_config {
     locationMap							locations;
 } t_config;
 
+enum RecieveState { header, body, chunk, done};
+
 typedef struct s_client {
 	s_client(t_config& conf): config(conf){
 		fd = 0;
 		serverFD = 0;
 		chunkSizeLong = 0;
+
 	}
-	int 			fd;
-	int 			serverFD;
-	long 			chunkSizeLong;
-	std::string 	ip;
-	std::string 	header;
-	std::string 	body;
-	std::string 	chunk;
-	t_config& 		config;
-	t_location 		location;
-	chunkStatus 	chunkState;
+	int 					fd;
+	int 					serverFD;
+	long 					chunkSizeLong;
+	long 					exptectedBodySize;
+	std::string 			ip;
+	std::string 			header;
+	std::string 			body;
+	std::string 			chunk;
+	RecieveState			recieving;
+	std::vector<pollfd> 	socketVector;
+	t_config 				config;
+	t_location				location;
+
+	s_client&	operator=(s_client copy){
+		fd = copy.fd;
+		serverFD = copy.serverFD;
+		chunkSizeLong = copy.chunkSizeLong;
+		exptectedBodySize = copy.exptectedBodySize;
+		ip = copy.ip;
+		header = copy.header;
+		body = copy.body;
+		chunk = copy.chunk;
+		recieving = copy.recieving;
+		socketVector = copy.socketVector;
+		config = copy.config;
+		location = copy.location;
+		return *this;
+	}
 } t_client;
+
+
 
 std::ostream	&operator<<(std::ostream &os, const t_config &rhs); // written in the utils.cpp
 

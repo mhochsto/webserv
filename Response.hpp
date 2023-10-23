@@ -12,6 +12,10 @@
 class Request;
 
 class Response {
+    public:
+        Response( t_client& client, Request& request );
+        const char *returnResponse( void ) const;
+        int  getSize( void ) const;
     private:
         t_client&   m_client;
         Request&    m_request;
@@ -30,10 +34,6 @@ class Response {
         void createResponse(std::string rspType, std::string file);
         void createErrorResponse( const std::string& errorCode );
         void executeCGI(void);
-    public:
-        Response( t_client& client, Request& request );
-        const char *returnResponse( void ) const;
-        int  getSize( void ) const;
 
 };
 

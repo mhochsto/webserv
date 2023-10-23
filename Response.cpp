@@ -14,13 +14,14 @@ Response::Response(t_client& client, Request& request ): m_client(client), m_req
 		executeCGI();
 		return ;
 	}
+
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("PUT", &Response::putResponse));
 
-	std::map<std::string, funcPtr>::iterator it = m_responseMap.find(request.getType());
-	(this->*it->second)(request);
+	(this->*m_responseMap.at(request.getType()))(request);
+
 }
 
 void Response::executeCGI(void){
@@ -58,7 +59,7 @@ void Response::createResponse(std::string rspType, std::string file){
 	response << timestamp();
 	response << "Server: webserv\nContent-Length: ";
 	response << body.str().length();
-	response << "\nConnection: Closed\nContent-Type: text/html\n\n";
+	response << "\nConnection: keep-alive\nContent-Type: text/html\n\n";
 	response << body.str();
 	m_response = response.str();
 	m_responseSize = m_response.length();

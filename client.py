@@ -13,27 +13,17 @@ def captureServ(p):
     print(out)
 
 def testCase1(sock):
-    sock.send(b"GET /website/pages HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
-    time.sleep(0.1)
-    sock.send(b" E\r\nthis is a test\r\n")
-    time.sleep(0.1)
-    sock.send(b"12\r\nthis is a new test\r\n")
-    time.sleep(0.1)
-    sock.send(b"0\r\n\r\n")
+    sock.send(b"GET /website/pages HTTP/1.1\r\nContent-Length=10\r\n\r\ntest123456\r\n")
 
-#p = subprocess.Popen(path, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-#t = threading.Thread(target= captureServ, args=(p,))
-#t.start()
-#time.sleep(0.1)
+
+p = subprocess.Popen(path, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+t = threading.Thread(target= captureServ, args=(p,))
+t.start()
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+time.sleep(1.5)
 sock.connect(('localhost', 7700))
 testCase1(sock)
 
-
-
-
-#response = sock.recv(4096)
-#print("\x1b[31m" + response.decode())
-#p.kill()
-#t.join()
+p.kill()
+t.join()
 sock.close()
