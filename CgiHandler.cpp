@@ -50,11 +50,18 @@ CgiHandler::CgiHandler( Request& request ) : m_request(request) {
 	m_envCharPtr.push_back(NULL);
 	execute();
 }
+#include <cstdlib>
 
 void CgiHandler::execute( void ) {
 	char *argv[] = { (char *)(m_request.getClient().location.cgiScript.empty() ? m_request.getPath().c_str() : m_request.getClient().location.cgiScript.c_str()) , NULL};
 	int inFile = open(".tempfile0", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
 	int outFile = open(".tempfile1", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
+	
+	std::ofstream outFile(".tempfile1", std::ostream::out);
+	std::ifstream inFile(".tempfile0", std::ifstream::trunc);
+
+	mkstemp("temp");
+
 	std::cout << "executing: " << argv[0] << std::endl;
 	if (m_request.getType() == "POST") {
 		write(inFile, m_request.getBody().c_str(), m_request.getBody().size());
@@ -62,8 +69,9 @@ void CgiHandler::execute( void ) {
 	pid_t pid = fork();
 	if (pid ==  -1)																throw std::runtime_error(SYS_ERROR("fork"));
 	if (pid == 0) {
-		if (dup2(outFile, STDOUT_FILENO) == -1)								throw std::runtime_error(SYS_ERROR("dup2"));
+		if (dup2(outFile, STDOUT_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(inFile, STDIN_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
+		std::cout.rdbuf(inFile.rdbuf());
 		close(inFile);
 		close(outFile);
 		if (execve(argv[0], argv , m_envCharPtr.data()) == -1){

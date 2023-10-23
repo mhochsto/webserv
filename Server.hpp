@@ -38,11 +38,7 @@ class Server {
 		std::vector<t_config>	m_serverConfig;
 		std::map<int, t_client> m_clients;
 
-		void 		CreateServerSocket( t_config& server );
-		void 		setConfig( t_client& client );
-		bool 		isServerSocket(int fd);
-		void 		removeClient( t_client& client );
-
+		t_config&	setConfig( int serverFD );
 		void 		addConnection( int serverFD );
 		ssize_t 	recvFromClient(std::string&data, t_client& client);
 		void 		handleRequest( t_client& client );
@@ -50,11 +46,6 @@ class Server {
 		int 		setChunkSize( t_client& client );
 		void 		saveChunk(t_client& client);
 		void 		sendResponse(t_client& client);
-
-	public:
-		Server( std::vector<t_config> serverConfig );
-		void		run( void );
-		~Server();
 };
 
 #endif

@@ -57,9 +57,10 @@ typedef struct s_config {
 } t_config;
 
 enum RecieveState { header, body, chunk, done};
-
+#include <iostream>
 typedef struct s_client {
-	s_client(t_config& conf): config(conf){
+
+	s_client(){
 		fd = 0;
 		serverFD = 0;
 		chunkSizeLong = 0;
@@ -78,21 +79,6 @@ typedef struct s_client {
 	t_config 				config;
 	t_location				location;
 
-	s_client&	operator=(s_client copy){
-		fd = copy.fd;
-		serverFD = copy.serverFD;
-		chunkSizeLong = copy.chunkSizeLong;
-		exptectedBodySize = copy.exptectedBodySize;
-		ip = copy.ip;
-		header = copy.header;
-		body = copy.body;
-		chunk = copy.chunk;
-		recieving = copy.recieving;
-		socketVector = copy.socketVector;
-		config = copy.config;
-		location = copy.location;
-		return *this;
-	}
 } t_client;
 
 

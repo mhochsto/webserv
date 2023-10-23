@@ -97,7 +97,7 @@ void Server::run( void ){
 }
 
 void Server::addConnection( int serverFD ){
-	t_client newClient(setConfig(serverFD));
+	t_client newClient;
 	pollfd newClientPoll;
 	struct sockaddr_in newClientAddr;
 	socklen_t addrlen = sizeof(newClientAddr);
@@ -119,6 +119,7 @@ void Server::addConnection( int serverFD ){
 	newClient.serverFD = serverFD;
 	newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
 	newClient.chunkSizeLong = -1;
+	newClient.config = setConfig(serverFD);
 	newClient.recieving = header;
 	m_clients[newClient.fd] = newClient;
 	print(Notification, "new Client added (ip): " + newClient.ip);
@@ -158,7 +159,7 @@ ssize_t Server::recvFromClient(std::string&data, t_client& client){
 
 void Server::sendResponse( t_client& client){
 	print(Notification, "recieved request from " + client.ip);
-	print(Notification, client.header);//.substr(0, client.header.find("\n")));
+	print(Notification, client.header.substr(0, client.header.find("\n")));
 
 	Request request(client);
 
