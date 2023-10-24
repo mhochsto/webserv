@@ -65,7 +65,7 @@ void Response::createResponse(std::string rspType, std::string file){
 	m_responseSize = m_response.length();
 }
 
-/* this is just for readability */
+/* just for readability */
 void Response::createErrorResponse(const std::string& errorCode){
 	createResponse(errorCode, createStringFromFile("." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)]));
 }
@@ -90,8 +90,9 @@ void Response::putResponse( Request& request ) {
 std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
 	file.open(fileName.c_str());
-	if (!file)
+	if (!file){
 		throw std::runtime_error(SYS_ERROR("can't open source file"));
+	}
 	std::stringstream sstream;
 	sstream << file.rdbuf();
 	file.close();

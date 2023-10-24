@@ -2,6 +2,7 @@
 # define UTILS_HPP
 
 #include <algorithm>
+#include <unistd.h> // close()
 
 #include "DataStructs.hpp"
 
@@ -18,4 +19,5 @@ void    print(printState state, std::string msg);
 void    formatPath(std::string& str);
 void	removeFirstWord(std::string& str);
 std::vector<std::string> convertStringtoVector(std::string str, std::string delimiter);
+void closePollfds( std::vector<pollfd> pollfds );
 #endif

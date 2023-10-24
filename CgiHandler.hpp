@@ -20,6 +20,7 @@ class CgiHandler {
 
 		/*private Memberfuntion*/
 		std::string getPathInfo(std::string path);
+		std::string prepFilePath( std::string path );
 
 	public:
 		/*Con- and Destructors*/

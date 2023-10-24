@@ -34,13 +34,11 @@ class Response {
         void createResponse(std::string rspType, std::string file);
         void createErrorResponse( const std::string& errorCode );
         void executeCGI(void);
-
 };
 
 
 std::string timestamp(void);
 
-# define FOF_PATH "./website/pages/404.html"
 
 std::ostream    &operator<<(std::ostream &os, const Response &rhs);
 

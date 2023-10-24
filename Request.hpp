@@ -24,7 +24,7 @@
 
 class Request {
 	public:
-		Request(t_client& client);
+		Request(t_client& client, std::vector<pollfd>& pollfds);
 		~Request();
 	
 		bool        contains( std::string str ) const;
@@ -37,22 +37,24 @@ class Request {
 		const std::string& getQueryString( void );
 		const std::string& getPathInfo( void );
 		const std::string& getScriptName( void );
-		t_client& getClient(void);
+		std::vector<pollfd>& getPollfds( void ); 
+		t_client& 			getClient(void);
 		bool				getIsCgi( void );
 		bool				getShowDir( void );
 		void		setPath( std::string newPath );
 	private:
-		t_client&		m_client;
-		std::string     m_requestType;
-		std::string     m_requestPath;
-		std::string		m_invalidRequest;
-		std::string     m_requestHttpVersion;
-		std::string		m_requestBody;
-		std::string		cgi_scriptName;
-		std::string		cgi_queryString;
-		std::string		cgi_pathInfo;
-		bool			cgi_isCgi;
-		bool			m_showDir;
+		t_client&					m_client;
+		std::string	     			m_requestType;
+		std::string	    	 		m_requestPath;
+		std::string					m_invalidRequest;
+		std::string		     		m_requestHttpVersion;
+		std::string					m_requestBody;
+		std::string					cgi_scriptName;
+		std::string					cgi_queryString;
+		std::string					cgi_pathInfo;
+		std::vector<pollfd>&		cgi_pollfds;
+		bool						cgi_isCgi;
+		bool						m_showDir;
 		std::map<std::string, std::string> m_requestData;
 
 		int 		validateAndSetRequestLine( const std::string& line );

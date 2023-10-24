@@ -50,48 +50,63 @@ CgiHandler::CgiHandler( Request& request ) : m_request(request) {
 	m_envCharPtr.push_back(NULL);
 	execute();
 }
-#include <cstdlib>
+
+std::string CgiHandler::prepFilePath( std::string path ){
+	std::string extension = path.substr(path.find_first_of('.'));
+	if (extension.find_first_of('/') != extension.find_last_of('/')){
+		extension.erase(extension.find('/'));
+	}
+	if (extension == ".js"){
+		path.insert(0, "node ");
+	}
+	else if (extension == ".py"){
+		path.insert(0, "python3 ");
+	}
+	return path;
+}
 
 void CgiHandler::execute( void ) {
-	char *argv[] = { (char *)(m_request.getClient().location.cgiScript.empty() ? m_request.getPath().c_str() : m_request.getClient().location.cgiScript.c_str()) , NULL};
-	int inFile = open(".tempfile0", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
-	int outFile = open(".tempfile1", O_CREAT | O_RDWR | O_CLOEXEC, 0664);
-	
-	std::ofstream outFile(".tempfile1", std::ostream::out);
-	std::ifstream inFile(".tempfile0", std::ifstream::trunc);
+	std::string filePath = prepFilePath(m_request.getPath());
 
-	mkstemp("temp");
-
-	std::cout << "executing: " << argv[0] << std::endl;
+	char *argv[] = { (char *)(m_request.getClient().location.cgiScript.empty() ? filePath.c_str() : m_request.getClient().location.cgiScript.c_str()) , NULL};
+	int fd[2];
+	std::cout << "reached  cgi part\n";
 	if (m_request.getType() == "POST") {
-		write(inFile, m_request.getBody().c_str(), m_request.getBody().size());
+		write(fd[0], m_request.getBody().c_str(), m_request.getBody().size());
+	}
+	if (pipe(fd)){
+		throw std::runtime_error(SYS_ERROR("pipe"));
 	}
 	pid_t pid = fork();
-	if (pid ==  -1)																throw std::runtime_error(SYS_ERROR("fork"));
+	if (pid ==  -1) {
+		throw std::runtime_error(SYS_ERROR("fork"));
+	}
 	if (pid == 0) {
-		if (dup2(outFile, STDOUT_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
-		if (dup2(inFile, STDIN_FILENO) == -1)									throw std::runtime_error(SYS_ERROR("dup2"));
-		std::cout.rdbuf(inFile.rdbuf());
-		close(inFile);
-		close(outFile);
+
+		dup2(fd[0], STDIN_FILENO);
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[0]);
+		close(fd[1]);
+		closePollfds(m_request.getPollfds());
 		if (execve(argv[0], argv , m_envCharPtr.data()) == -1){
 			perror("execve");
 		}
 	}
-	waitpid(pid, NULL, 0);
-	close(outFile);
-	close(inFile);
-	
-	char buf[100];
-	outFile = open(".tempfile1", O_RDWR, 0664);
-	while(true){
-		std::memset(buf, 0, 100);
-		int rd = read(outFile, buf, 100);
-		if (rd == -1)															throw std::runtime_error(SYS_ERROR("read"));
-		if (rd == 0) break;
+	close(fd[1]);
+
+	char buf[1024];
+	int rd = 1;
+	while (rd) {
+		std::memset(buf, 0, sizeof(buf));
+		rd = read(fd[0], buf, sizeof(buf));
+		if (rd <= 0){
+			break ;
+		}
 		m_output += buf;
 	}
-	close(outFile);
+	close(fd[0]);
+	waitpid(pid, NULL, 0);
+
 	remove(".tempfile0");
 	remove(".tempfile1");
 }

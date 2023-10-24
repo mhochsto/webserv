@@ -1,8 +1,6 @@
 #include "Request.hpp"
 
-/* function call order is important here. */
-/**/
-Request::Request(t_client& client): m_client(client), cgi_isCgi(false), m_showDir(false) {
+Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false) {
 
 	if (parseHeader()){
 		return ;
@@ -65,6 +63,7 @@ void Request::checkFilePermissions(void){
 }
 
 void Request::setIsCgi(void){
+
 	if ( std::strncmp(m_client.location.path.c_str(), "/*", 2) && std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
 		return ;
 	}
@@ -128,7 +127,7 @@ void Request::setRedirects( void ){
 void Request::validateRequestType(const t_location& location){
 	std::vector <std::string> allowedMethods = location.allowedMethods.size() == 0 ? m_client.config.locations["/"].allowedMethods : location.allowedMethods;
 	for (unsigned long i = 0; i < allowedMethods.size(); i++) {
-		if (m_requestType == location.allowedMethods.at(i)){
+		if (m_requestType == allowedMethods.at(i)){
 			return ;
 		}
 	}
@@ -190,12 +189,12 @@ int Request::parseHeader(void) {
 std::string Request::getLocationName( void ) {
 	std::string path = m_requestPath.substr(1);
 	if (m_requestPath.find('.') < m_requestPath.find('?')){
-		std::string path = "*" + m_requestPath.substr(m_requestPath.find('.'));
-		if (path.find('/') != std::string::npos){
-			path.erase(path.find('/'));
+		if (path.find_first_of('.') != path.find_last_of('.')){
 		}
-		path.insert(0, "/");
+			path.erase(0, path.find_last_of('.'));
+		path.insert(0, "/*");
 		if (m_client.config.locations.find(path) != m_client.config.locations.end()){
+			cgi_isCgi = true;
 			return path;
 		}
 	}
@@ -223,6 +222,8 @@ const std::string& Request::getClientIP( void ) { return m_client.ip;}
 const std::string& Request::getPathInfo( void ) {return cgi_pathInfo;}
 
 const std::string& Request::getScriptName( void ) { return cgi_scriptName;}
+
+std::vector<pollfd>& Request::getPollfds( void ) { return cgi_pollfds;}
 
 t_client& Request::getClient( void ){ return m_client;}
 

@@ -40,8 +40,12 @@ std::string timestamp(void){
 }
 
 
-/* remove preceding Whitespace, first word and trailing whitespace from str */
-/* return first Word as new string*/
+void closePollfds( std::vector<pollfd> pollfds ){
+	for (std::vector<pollfd>::iterator it = pollfds.begin(); it != pollfds.end(); ++it){
+			close(it->fd);
+	}
+}
+
 std::string getFirstWord(std::string& str) {
 	if (str.find_first_of(WHITESPACE) == 0){
 		str.erase(0, str.find_first_not_of(WHITESPACE));
@@ -85,7 +89,6 @@ void	removeFirstWord(std::string& str) {
 	str.erase(0, str.find_first_of(WHITESPACE));
 }
 
-/* remove one trailing '/' && add one '/' if necessary -> perfect outcome == "/str" */
 void formatPath(std::string& str){
 	if (str != "/" && str.at(str.length() - 1) == '/')
 		str.resize(str.length() - 1);

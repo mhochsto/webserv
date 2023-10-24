@@ -161,7 +161,7 @@ void Server::sendResponse( t_client& client){
 	print(Notification, "recieved request from " + client.ip);
 	print(Notification, client.header.substr(0, client.header.find("\n")));
 
-	Request request(client);
+	Request request(client, m_sockets);
 
 	Response response(client, request);
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
