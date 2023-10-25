@@ -6,6 +6,11 @@ POSTCOMPILE = mv -f $*.Td $*.d && touch $@
 
 CXX := c++
 
+SRC_DIR := /src
+OBJ_DIR := /obj
+DEP_DIR := $(OBJ)/dep
+INC_DIR := /inc
+
 SRC :=	main.cpp		\
 		Config.cpp		\
 		utils.cpp		\
@@ -14,11 +19,13 @@ SRC :=	main.cpp		\
 		Response.cpp	\
 		CgiHandler.cpp	
 
-OBJ := $(SRC:%.cpp=%.o)
+SRCS := $(addprefix $(SRC_DIR),$(SRC))
 
-DEPFILES = $(SRC:%.cpp=%.d)
+OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
-%.o: %.cpp
+DEPFILES = $(SRC:%.cpp=/DEP_DIR/%.d)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(DEPFLAGS) -c $< -o $@
 
 	@$(POSTCOMPILE)
@@ -26,13 +33,11 @@ DEPFILES = $(SRC:%.cpp=%.d)
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CXX) -o $(NAME) $(OBJ) -I.
+	@mkdir -p $(DEP_DIR)
+	$(CXX) -o $(NAME) $(OBJ) -I$(INC_DIR)
 	@echo "Done making"
 
 $(DEPFILES): 
-
-test: $(NAME)
-	python3 client.py
 
 clean:
 	@rm -f $(OBJ)
