@@ -1,15 +1,16 @@
 NAME :=	webserv
 
-CPPFLAGS := -Wall -Werror -Wextra -std=c++98 -g
-DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
-POSTCOMPILE = mv -f $*.Td $*.d && touch $@
+SRC_DIR := src
+OBJ_DIR := obj
+DEP_DIR := $(OBJ_DIR)/dep
+INC_DIR := inc
+
+CXXFLAGS := -Wall -Werror -Wextra -std=c++98
+CPPFLAGS = -I$(INC_DIR)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.Td
+POSTCOMPILE = mv -f $(DEP_DIR)/$*.Td $(DEP_DIR)/$*.d && touch $@
 
 CXX := c++
-
-SRC_DIR := /src
-OBJ_DIR := /obj
-DEP_DIR := $(OBJ)/dep
-INC_DIR := /inc
 
 SRC :=	main.cpp		\
 		Config.cpp		\
@@ -21,27 +22,31 @@ SRC :=	main.cpp		\
 
 SRCS := $(addprefix $(SRC_DIR),$(SRC))
 
-OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+OBJ := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 
-DEPFILES = $(SRC:%.cpp=/DEP_DIR/%.d)
+DEPFILES = $(SRC:%.cpp=$(DEP_DIR)/%.d)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX) $(CPPFLAGS) $(DEPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(DEP_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@ 
 
 	@$(POSTCOMPILE)
 
+
 all: $(NAME)
 
-$(NAME): $(OBJ)
+$(DEP_DIR):
 	@mkdir -p $(DEP_DIR)
-	$(CXX) -o $(NAME) $(OBJ) -I$(INC_DIR)
+
+
+$(NAME): $(OBJ)
+	$(CXX) -o $(NAME) $(OBJ)
 	@echo "Done making"
 
 $(DEPFILES): 
 
 clean:
-	@rm -f $(OBJ)
-	@rm -f $(DEPFILES)
+	@rm -rf $(OBJ_DIR)
 	@echo "cleaned the o_files and the d_files"
 
 fclean: clean

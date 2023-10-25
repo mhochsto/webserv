@@ -20,7 +20,7 @@ p = subprocess.Popen(path, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, te
 t = threading.Thread(target= captureServ, args=(p,))
 t.start()
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-time.sleep(1.5)
+time.sleep(0.5)
 sock.connect(('localhost', 7700))
 testCase1(sock)
 
