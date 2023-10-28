@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <numeric>
-
+# include <csignal>
 # include "Config.hpp"
 
 # define CLIENT_MAX 200
@@ -33,6 +33,7 @@ class Server {
 		void removeClient( t_client& client );
 		void CreateServerSocket( t_config& server );
 		bool isServerSocket(int fd);
+		t_client* findClient(int pipeFd);
 	private:
 		std::vector<pollfd> 	m_sockets;
 		std::vector<t_config>	m_serverConfig;
@@ -41,11 +42,12 @@ class Server {
 		t_config&	setConfig( int serverFD );
 		void 		addConnection( int serverFD );
 		ssize_t 	recvFromClient(std::string&data, t_client& client);
-		void 		handleRequest( t_client& client );
+		void 		recieveRequest( t_client& client );
 		void 		setRecieveState(t_client& client);
 		int 		setChunkSize( t_client& client );
 		void 		saveChunk(t_client& client);
 		void 		sendResponse(t_client& client);
+		void 		removeFdFromSocketVec( int fd );
 };
 
 #endif

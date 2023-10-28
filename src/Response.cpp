@@ -5,13 +5,14 @@
 # include "utils.hpp"
 # include "CgiHandler.hpp"
 
-Response::Response(t_client& client, Request& request ): m_client(client), m_request(request) {
-	if (request.getIsCgi()){
-		executeCGI();
+Response::Response(t_client& client ): m_client(client) {
+
+	if (client.request->getIsCgi()){
+		createCgiResponse();
 		return ;
 	}
-	if (!request.getInvalidRequest().empty()){
-		createErrorResponse(request.getInvalidRequest());
+	if (!client.request->getInvalidRequest().empty()){
+		createErrorResponse(client.request->getInvalidRequest());
 		return ;
 	}
 
@@ -20,15 +21,19 @@ Response::Response(t_client& client, Request& request ): m_client(client), m_req
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("PUT", &Response::putResponse));
 
-	(this->*m_responseMap.at(request.getType()))(request);
+	(this->*m_responseMap.at(client.request->getType()))(client.request);
 
 }
 
-void Response::executeCGI(void){
-	CgiHandler cgi(m_request);
-	createResponse("200 Ok\n", cgi.getOutput());
+void Response::createCgiResponse(void){
+	if (m_client.body.find("\r\n\r\n") != 0){
+		createResponse("200 Ok\n", m_client.body);
+		return ;
+	}
+	std::string header = m_client.body.substr(0, m_client.body.find("\r\n\r\n"));
+	m_client.body.erase(0, header.size() + 4);
+	createResponse("200 Ok\n" + header, m_client.body);
 }
-
 
 /* lists all files in path, excluding "." && ".." */
 std::string Response::showDir(std::string path){
@@ -70,13 +75,13 @@ void Response::createErrorResponse(const std::string& errorCode){
 	createResponse(errorCode, createStringFromFile("." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)]));
 }
 
-void Response::putResponse( Request& request ) {
+void Response::putResponse( Request *request ) {
 	std::string proxyPassPath = m_client.config.root + "/" + m_client.location.proxyPass;
 	if (access(proxyPassPath.c_str(), F_OK) == -1){
 		createErrorResponse("400 File not Found\n");
 		return ;
 	}
-	proxyPassPath.append("/" + request.getPath().substr(m_client.location.path.length()));
+	proxyPassPath.append("/" + request->getPath().substr(m_client.location.path.length()));
 
 	std::ofstream file(proxyPassPath.c_str(), std::ios::out | std::ios::trunc);
 	if (!file){
@@ -99,22 +104,25 @@ std::string Response::createStringFromFile(std::string fileName){
 	return sstream.str();
 }
 
-void Response::getResponse( Request& request ){
-	if (request.getShowDir()){
-		createResponse("200 OK\n", showDir(request.getPath()));
+void Response::getResponse( Request *request ){
+	if (request->getShowDir()){
+		createResponse("200 OK\n", showDir(request->getPath()));
 		return ;
 	}
-	createResponse("200 OK\n", createStringFromFile(request.getPath()));
+	createResponse("200 OK\n", createStringFromFile(request->getPath()));
 }
 
-void Response::postResponse( Request& request ){
-	//request.setPath(request.getPath() + "?" + request.getBody());
-	createResponse("200 Ok\n", request.getClient().body);
+void Response::postResponse( Request *request ){
+	if (request->getShowDir()){
+		createResponse("200 OK\n", showDir(request->getPath()));
+		return ;
+	}
+	createResponse("200 OK\n", createStringFromFile(request->getPath()));
 }
 
-void Response::deleteResponse( Request& request ){
+void Response::deleteResponse( Request *request ){
 
-	if (remove(std::string(m_client.config.root + request.getPath()).c_str())  == 0){
+	if (remove(std::string(m_client.config.root + request->getPath()).c_str())  == 0){
 		createResponse("204 No Content\n", "");
 	}
 	else {

@@ -9,6 +9,9 @@
 
 # include <poll.h>
 
+class Request;
+class CgiHandler;
+
 typedef struct s_location {
 	s_location() {
 		autoIndex = false;
@@ -57,15 +60,20 @@ typedef struct s_config {
 } t_config;
 
 enum RecieveState { header, body, chunk, done};
-#include <iostream>
+
 typedef struct s_client {
 
 	s_client(){
 		fd = 0;
 		serverFD = 0;
 		chunkSizeLong = 0;
-
+		request = NULL;
+		cgi = NULL;
+		activeCGI = false;
 	}
+
+	bool					activeCGI;
+	int						CgiPid;
 	int 					fd;
 	int 					serverFD;
 	long 					chunkSizeLong;
@@ -75,9 +83,11 @@ typedef struct s_client {
 	std::string 			body;
 	std::string 			chunk;
 	RecieveState			recieving;
-	std::vector<pollfd> 	socketVector;
+	std::vector<pollfd> 	*socketVector;
 	t_config 				config;
 	t_location				location;
+	Request 				*request;
+	CgiHandler				*cgi;
 
 } t_client;
 

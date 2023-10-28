@@ -5,7 +5,7 @@ OBJ_DIR := obj
 DEP_DIR := $(OBJ_DIR)/dep
 INC_DIR := inc
 
-CXXFLAGS := -Wall -Werror -Wextra -std=c++98
+CXXFLAGS := -Wall -Werror -Wextra -std=c++98 -g
 CPPFLAGS = -I$(INC_DIR)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP_DIR)/$*.Td
 POSTCOMPILE = mv -f $(DEP_DIR)/$*.Td $(DEP_DIR)/$*.d && touch $@
@@ -47,11 +47,11 @@ $(DEPFILES):
 
 clean:
 	@rm -rf $(OBJ_DIR)
-	@echo "cleaned the o_files and the d_files"
+	@echo "done with clean"
 
 fclean: clean
 	@rm -f $(NAME)
-	@echo "cleaned the executable"
+	@echo "done with fclean"
 
 re:	fclean $(NAME)
 

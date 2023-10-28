@@ -4,10 +4,10 @@
 #include "Request.hpp"
 
 int main(int argc, char **argv) {
-    Config config("webserv.config");
+    Config config("test_site.config");
     Server webserv(config.getServerConfig());
-    try {
         webserv.run();
+    try {
     }
     catch (std::exception &e){
         std::cerr << e.what() << std::endl;

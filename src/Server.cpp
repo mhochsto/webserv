@@ -4,7 +4,7 @@
 # include "Response.hpp"
 # include "Error.hpp"
 # include "Config.hpp"
-
+# include "CgiHandler.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -74,23 +74,90 @@ bool Server::isServerSocket(int fd){
 	}
 	return false;
 }
+
+bool	activeCGI(t_client& client){
+	if (!client.request->getIsCgi()){
+		return false;
+	}
+	if (client.activeCGI){
+		return true ;
+	}
+	if (!client.activeCGI && !client.cgi){
+		client.cgi = new CgiHandler(client);
+		client.activeCGI = true;
+		return true;
+	}
+
+	return false;
+}
+
+t_client* Server::findClient(int pipeFd){
+	for (std::map<int, t_client>::iterator it = m_clients.begin(); it != m_clients.end(); ++it){
+		if (it->second.cgi){
+			if (it->second.cgi->isPipeFd(pipeFd)){
+				return &it->second;
+			}
+		}
+	}
+	return NULL;
+}
+
 void Server::run( void ){
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), TIMEOUT) == -1){
 			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); ++i){
-			if (isServerSocket(m_sockets.at(i).fd)){
+			if (isServerSocket(m_sockets.at(i).fd)){ // is serverSocket
 				if (m_sockets.at(i).revents & POLLIN){
 					addConnection(m_sockets.at(i).fd);
 					m_sockets.at(i).revents = 0;
 				}
 			}
-			else if (m_sockets.at(i).revents != 0) {
+			else if (m_sockets.at(i).revents != 0 && m_clients.find(m_sockets.at(i).fd) != m_clients.end()) { // is clientSocket
 				if (m_sockets.at(i).revents & POLLIN) {
-					handleRequest(m_clients[m_sockets.at(i).fd]);
-					m_sockets.at(i).revents = 0;
+					recieveRequest(m_clients[m_sockets.at(i).fd]);
 				}
+				else if (m_sockets.at(i).revents & POLLOUT && m_clients[m_sockets.at(i).fd].recieving == done){
+					if (activeCGI(m_clients[m_sockets.at(i).fd])){
+						continue ;
+					}
+					sendResponse(m_clients[m_sockets.at(i).fd]);
+				}
+				else if (m_sockets.at(i).revents & POLLERR || m_sockets.at(i).revents & POLLHUP){
+					removeClient(m_clients[m_sockets.at(i).fd]);
+					continue ;
+				}
+		   }
+		   else if (findClient(m_sockets.at(i).fd)) { //is pipe
+
+				t_client *cgiClient = findClient(m_sockets.at(i).fd);
+				if (!cgiClient){
+					removeFdFromSocketVec(m_sockets.at(i).fd);
+					continue ;
+				}
+		   		if (m_sockets.at(i).revents & POLLIN){
+					int wt = write(m_sockets.at(i).fd, cgiClient->body.c_str(), cgiClient->body.length());
+					cgiClient->body.erase(0, wt);
+					if (wt == 0 || cgiClient->body.size() == 0){
+						removeFdFromSocketVec(m_sockets.at(i).fd);
+						continue ;
+					}
+				}
+				else if (m_sockets.at(i).revents & POLLOUT){
+					char buf[1024];
+					std::memset(buf, 0, 1024);
+					int rd = read(m_sockets.at(i).fd, buf, 1024);
+					cgiClient->cgi->getOutput() += buf;
+					if (rd == 0){
+						removeFdFromSocketVec(m_sockets.at(i).fd);
+						cgiClient->body = cgiClient->cgi->getOutput();
+						kill(cgiClient->CgiPid, SIGKILL);
+						cgiClient->activeCGI = false;
+						continue ;
+					}
+				}
+				m_sockets.at(i).revents = 0;
 		   }
 		}
 	}
@@ -121,6 +188,7 @@ void Server::addConnection( int serverFD ){
 	newClient.chunkSizeLong = -1;
 	newClient.config = setConfig(serverFD);
 	newClient.recieving = header;
+	newClient.socketVector = &m_sockets;
 	m_clients[newClient.fd] = newClient;
 	print(Notification, "new Client added (ip): " + newClient.ip);
 }
@@ -133,11 +201,29 @@ t_config& Server::setConfig(int serverFD){
 	return *m_serverConfig.begin();
 }
 
+void Server::removeFdFromSocketVec( int fd ){
+	for (std::vector<pollfd>::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it){
+		if (it->fd == fd){
+			close(fd);
+			m_sockets.erase(it);
+			break ;
+		}
+	}
+}
+
 void Server::removeClient( t_client& client ){
 	if (m_clients.find(client.fd) == m_clients.end()){
 		return ; 
 	}
-	close (client.fd);
+	if (client.request){
+		delete client.request;
+		client.request = NULL;
+	}
+	if (client.cgi){
+		delete client.cgi;
+		client.cgi = NULL;
+	}
+	removeFdFromSocketVec(client.fd);
 	m_clients.erase(client.fd);
 }
 
@@ -161,9 +247,8 @@ void Server::sendResponse( t_client& client){
 	print(Notification, "recieved request from " + client.ip);
 	print(Notification, client.header.substr(0, client.header.find("\n")));
 
-	Request request(client, m_sockets);
 
-	Response response(client, request);
+	Response response(client);
 	send(client.fd, response.returnResponse(), response.getSize(), 0);
 	
 	std::string respStr(response.returnResponse());
@@ -175,6 +260,15 @@ void Server::sendResponse( t_client& client){
 	client.chunk.clear();
 	client.chunkSizeLong = -1;
 	client.recieving = header;
+	client.activeCGI = false;
+	if (client.request){
+		delete client.request;
+		client.request = NULL;
+	}
+	if (client.cgi){
+		delete client.cgi;
+		client.cgi = NULL;
+	}
 }
 
 void Server::setRecieveState(t_client& client){
@@ -229,11 +323,12 @@ void Server::saveChunk(t_client& client){
 		}
 		return ;
 	}
-	
+
 	if ((long)client.chunk.size() < client.chunkSizeLong + 2){
 		return ;
 	}
 	else if ((long)client.chunk.size() > client.chunkSizeLong + 2){
+
 		client.body += client.chunk.substr(0, client.chunkSizeLong);
 		client.chunk.erase(0, client.chunkSizeLong + 2);
 		client.chunkSizeLong = -1;
@@ -246,7 +341,7 @@ void Server::saveChunk(t_client& client){
 	}
 }
 
-void Server::handleRequest( t_client& client ){
+void Server::recieveRequest( t_client& client ){
 
 	switch (client.recieving){
 		case header:
@@ -274,13 +369,22 @@ void Server::handleRequest( t_client& client ){
 		default:
 			break;
 		}
-
-	if (client.recieving == done){
-		sendResponse(client);
-	}
+		if (client.recieving == done && !client.request){
+				client.request = new Request(client, m_sockets);
+		}
 }
 
 Server::~Server() {
+	for (std::map<int, t_client>::iterator it = m_clients.begin(); it != m_clients.end(); ++it){
+		if (it->second.cgi){
+			delete it->second.cgi;
+			it->second.cgi = NULL;
+		}
+		if (it->second.request){
+			delete it->second.request;
+			it->second.request = NULL;
+		}
+	} 
 	for (std::vector<pollfd>::iterator it = m_sockets.begin(); it != m_sockets.end(); ++it){
 		close(it->fd);
 	}
