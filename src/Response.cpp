@@ -6,7 +6,6 @@
 # include "CgiHandler.hpp"
 
 Response::Response(t_client& client ): m_client(client) {
-
 	if (client.request->getIsCgi()){
 		createCgiResponse();
 		return ;
@@ -57,6 +56,27 @@ std::string Response::showDir(std::string path){
 	return file.str();
 }
 
+std::string Response::FileType( void ) {
+	std::string extension = m_client.request->getPath().substr(1);
+	extension.erase(0, m_client.request->getPath().find_last_of('.'));
+	if (extension.find_first_of('/') != extension.find_last_of('/')){
+		extension.erase(extension.find('/'));
+	}
+	if (m_client.request->getIsCgi()){
+	return "text/html";
+	}
+	else if (extension == "js"){
+			return "application/javascript";
+	}
+	else if (extension == "css"){
+			return "text/css";
+	}
+	else if (extension == "html"){
+			return "text/html";
+	}
+	return "text/html";
+}
+
 void Response::createResponse(std::string rspType, std::string file){
 	std::stringstream response;
 	std::stringstream body(file);
@@ -64,7 +84,8 @@ void Response::createResponse(std::string rspType, std::string file){
 	response << timestamp();
 	response << "Server: webserv\nContent-Length: ";
 	response << body.str().length();
-	response << "\nConnection: keep-alive\nContent-Type: text/html\n\n";
+	response << "\nConnection: keep-alive\n";
+	response << "Content-Type: " << FileType() << "\r\n\r\n";
 	response << body.str();
 	m_response = response.str();
 	m_responseSize = m_response.length();
@@ -96,7 +117,7 @@ std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
 	file.open(fileName.c_str());
 	if (!file){
-		throw std::runtime_error(SYS_ERROR("can't open source file"));
+		return LAST_RESORT_404;
 	}
 	std::stringstream sstream;
 	sstream << file.rdbuf();

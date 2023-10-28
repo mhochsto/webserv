@@ -4,7 +4,7 @@
 #include "Request.hpp"
 
 int main(int argc, char **argv) {
-    Config config("test_site.config");
+    Config config("webserv.config");
     Server webserv(config.getServerConfig());
         webserv.run();
     try {

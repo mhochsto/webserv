@@ -68,8 +68,8 @@ class Request {
 		void		checkFilePermissions(void);
 		void		checkIfDirectoryShouldBeShown( void );
 		void 		validateRequestType(const t_location& location);
-
-
+		void		checkBodyLength(void);
+		void		validateExtension(std::string& extension, t_location& location);
 };
 
 std::ostream    &operator<<(std::ostream &os, const Request &rhs);

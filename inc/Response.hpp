@@ -34,6 +34,7 @@ class Response {
         void createErrorResponse( const std::string& errorCode );
         void createCgiResponse(void);
         void executeCGI(void);
+        std::string FileType( void );
 };
 
 

@@ -124,7 +124,7 @@ void Server::run( void ){
 					}
 					sendResponse(m_clients[m_sockets.at(i).fd]);
 				}
-				else if (m_sockets.at(i).revents & POLLERR || m_sockets.at(i).revents & POLLHUP){
+				else if (m_sockets.at(i).revents & (POLLHUP | POLLERR)){
 					removeClient(m_clients[m_sockets.at(i).fd]);
 					continue ;
 				}
@@ -139,7 +139,7 @@ void Server::run( void ){
 		   		if (m_sockets.at(i).revents & POLLIN){
 					int wt = write(m_sockets.at(i).fd, cgiClient->body.c_str(), cgiClient->body.length());
 					cgiClient->body.erase(0, wt);
-					if (wt == 0 || cgiClient->body.size() == 0){
+					if (wt <= 0 || cgiClient->body.size() == 0){
 						removeFdFromSocketVec(m_sockets.at(i).fd);
 						continue ;
 					}
@@ -148,7 +148,9 @@ void Server::run( void ){
 					char buf[1024];
 					std::memset(buf, 0, 1024);
 					int rd = read(m_sockets.at(i).fd, buf, 1024);
-					cgiClient->cgi->getOutput() += buf;
+					if (rd == -1){ //might be an issue;
+						continue;
+					}
 					if (rd == 0){
 						removeFdFromSocketVec(m_sockets.at(i).fd);
 						cgiClient->body = cgiClient->cgi->getOutput();
@@ -156,6 +158,7 @@ void Server::run( void ){
 						cgiClient->activeCGI = false;
 						continue ;
 					}
+					cgiClient->cgi->getOutput() += buf;
 				}
 				m_sockets.at(i).revents = 0;
 		   }
@@ -175,7 +178,7 @@ void Server::addConnection( int serverFD ){
 	if (newClientPoll.fd == -1){
 		return ;
 	}
-	newClientPoll.events = POLLIN | POLLOUT;
+	newClientPoll.events = POLLIN | POLLOUT | POLLHUP; 
 	
 	if (getsockname(newClientPoll.fd, (struct sockaddr *)&newClientAddr, &addrlen) == -1){
 		close(newClientPoll.fd);
@@ -212,6 +215,7 @@ void Server::removeFdFromSocketVec( int fd ){
 }
 
 void Server::removeClient( t_client& client ){
+	print(Notification, "Removed Client: " + client.ip);
 	if (m_clients.find(client.fd) == m_clients.end()){
 		return ; 
 	}
@@ -228,16 +232,12 @@ void Server::removeClient( t_client& client ){
 }
 
 ssize_t Server::recvFromClient(std::string&data, t_client& client){
-	char c_buffer[HTTP_HEADER_LIMIT + client.location.clientMaxBodySize];
+	char c_buffer[HTTP_HEADER_LIMIT];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
 	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
-	if (readBytes == 0){
+	if (readBytes <= 0){
 		removeClient(client);
 		return 0;
-	}
-	if (readBytes  == -1){
-		removeClient(client);
-		return -1;
 	}
 	data += c_buffer;
 	return readBytes;

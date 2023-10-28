@@ -40,8 +40,10 @@ typedef struct s_config {
 		root = SERVER_ROOT;
 		serverName = SERVER_LOCALHOST;
 		errorPages["400"] = SERVER_ERROR_PAGE_400;
+		errorPages["403"] = SERVER_ERROR_PAGE_403;
 		errorPages["404"] = SERVER_ERROR_PAGE_404;
 		errorPages["405"] = SERVER_ERROR_PAGE_405;
+		errorPages["413"] = SERVER_ERROR_PAGE_413;
 		errorPages["500"] = SERVER_ERROR_PAGE_500;
 		errorPages["502"] = SERVER_ERROR_PAGE_502;
 		errorPages["503"] = SERVER_ERROR_PAGE_503;

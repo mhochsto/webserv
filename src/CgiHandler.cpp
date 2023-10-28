@@ -53,15 +53,15 @@ CgiHandler::CgiHandler( t_client& client ) : m_client(client) {
 
 std::string CgiHandler::findExecutablePath( std::string path ){
 
-	std::string extension = path.substr(1);
-	extension.erase(0, path.find_last_of('.'));
-	if (extension.find_first_of('/') != extension.find_last_of('/')){
-		extension.erase(extension.find('/'));
+	m_extension = path.substr(1);
+	m_extension.erase(0, path.find_last_of('.'));
+	if (m_extension.find_first_of('/') != m_extension.find_last_of('/')){
+		m_extension.erase(m_extension.find('/'));
 	}
-	if (extension == "js"){
+	if (m_extension == "js"){
 		return "/usr/bin/node";
 	}
-	else if (extension == "py"){
+	else if (m_extension == "py"){
 		path.insert(0, "/usr/bin/python3");
 	}
 	return path;
@@ -121,5 +121,6 @@ bool CgiHandler::isPipeFd(int fd){
 
 std::string& CgiHandler::getOutput( void ) {return m_output;}
 
+const std::string& CgiHandler::getExtension( void ) { return m_extension;}
 
 

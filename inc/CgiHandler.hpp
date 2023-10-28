@@ -23,8 +23,10 @@ class CgiHandler {
 		std::string& getOutput( void );
 		t_client& getClient( void );
 		bool isPipeFd(int fd);
+		const std::string& getExtension();
 	private:
 		t_client&							m_client;
+		std::string							m_extension;
 		std::string 						m_output;
 		std::vector<std::string>			m_envStr;
 		std::vector<char *>					m_envCharPtr;

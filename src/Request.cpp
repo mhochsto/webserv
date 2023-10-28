@@ -15,9 +15,17 @@ Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(clien
 		return ;
 	}
 	checkIfDirectoryShouldBeShown();
+	checkBodyLength();
 }
 
 Request::~Request(){}
+
+void Request::checkBodyLength(void){
+	long checkSize = m_client.location.clientMaxBodySize == UNSET ? m_client.config.clientMaxBodySize : m_client.location.clientMaxBodySize;
+	if ((long)m_client.body.size() > checkSize) {
+		m_invalidRequest = "413 Request Entity Too Large.\n";
+	}
+}
 
 void	Request::checkIfDirectoryShouldBeShown( void ) {
 	struct stat statbuf;
@@ -68,18 +76,32 @@ void Request::setIsCgi(void){
 		return ;
 	}
 	cgi_isCgi = true;
+	if (!std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
+			return ;
+	}
+	std::string extension = "."  + m_client.location.path.substr(2);
 	if (m_client.location.cgiScript.empty()){
-		std::string extension = "."  + m_client.location.path.substr(2);
 		cgi_scriptName = m_requestPath.substr(0, m_requestPath.find(extension));
 		cgi_scriptName.erase(0, cgi_scriptName.find_last_of('/') + 1);
 	}
 	else {
 		cgi_scriptName = m_client.location.cgiScript;
 	}
+	validateExtension(extension, m_client.location);
 	if (m_invalidRequest == "405 Method Not Allowed\n") {
 		m_invalidRequest.clear();
 		validateRequestType(m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
+		validateExtension(extension, m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
 	}
+}
+
+void Request::validateExtension(std::string& extension, t_location& location){
+	for (std::vector<std::string>::iterator it = location.allowedCgiExtensions.begin(); it != location.allowedCgiExtensions.end(); ++it){
+		if (("." + extension) == *it ||   extension == *it){
+			return ;
+		}
+	}
+	m_invalidRequest = "403 Forbidden\n";
 }
 
 void Request::setPathInfo(void){
@@ -192,7 +214,6 @@ std::string Request::getLocationName( void ) {
 		path.erase(0, path.find_last_of('.'));
 		path.insert(0, "/*");
 		if (m_client.config.locations.find(path) != m_client.config.locations.end()){
-			cgi_isCgi = true;
 			return path;
 		}
 	}
