@@ -6,6 +6,8 @@
 # include <exception>
 # include <sys/socket.h> //socket
 # include <unistd.h> // close
+# include <arpa/inet.h> // sockaddr_in
+# include <poll.h> // poll
 
 # define BUFFER_SIZE 12000;
 
@@ -27,9 +29,9 @@ class Server {
 		//Member Variables
 		struct sockaddr_in	socketAddress;
 		std::string			IPAdress;
+		int					socketAddressLen;
 		int					socketFD;
 		int					port;
-
 };
 
 #endif
