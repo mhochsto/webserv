@@ -28,7 +28,7 @@ void Server::CreateServerSocket( t_config& server ){
 	
 	std::stringstream port;
 	port << server.port;
-	int s = getaddrinfo(server.serverName.c_str(), port.str().c_str(), &hints, &results);
+	int s = getaddrinfo(server.serverIP.c_str(), port.str().c_str(), &hints, &results);
 	if (s){
 		std::cerr << gai_strerror(s) << std::endl;
 	}
@@ -48,6 +48,7 @@ void Server::CreateServerSocket( t_config& server ){
 	if (bind(serverSocket.fd, results->ai_addr, results->ai_addrlen) == -1){
 		close(serverSocket.fd);
 		freeaddrinfo(results);
+		perror("bind");
 		throw std::runtime_error(SYS_ERROR("bind"));
 	}
 	freeaddrinfo(results);
@@ -61,9 +62,15 @@ void Server::CreateServerSocket( t_config& server ){
 
 Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		print(Notification, "starting Server");
-		CreateServerSocket(*it);
-		print(Notification, "Server started Successfully");
+		print(Notification, "starting Server: " + it->serverName);
+		try{
+			CreateServerSocket(*it);
+		}
+		catch(const std::exception& e){
+			std::cerr << e.what() << '\n';
+			continue ;
+		}
+		print(Notification, "Server started Successfully: " + it->serverName + "\n");
 	}
 }
 
@@ -103,6 +110,9 @@ t_client* Server::findClient(int pipeFd){
 }
 
 void Server::run( void ){
+	if (m_sockets.size() == 0){
+		throw std::runtime_error("Server::No open Server Sockets");
+	}
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
 			throw std::runtime_error(SYS_ERROR("poll"));

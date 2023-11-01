@@ -125,9 +125,11 @@ class Config{
 	template <typename T>
 	static void 	addListen(std::string line, T& set ){
 		std::string port = getFirstWord(line);
-		if (!line.empty()){
-			throw configException("invalid listen: " + line);
+		if (!line.empty() || port.find(':') == std::string::npos){
+			throw configException("invalid listen: " + port + line);
 		}
+		set.serverIP = port.substr(0, port.find(':'));
+		port.erase(0, port.find(':') + 1);
 		char *endptr;
 		double dValue = std::strtod(port.c_str(), &endptr);
 		if (*endptr || dValue < PORT_MIN || dValue > PORT_MAX ){

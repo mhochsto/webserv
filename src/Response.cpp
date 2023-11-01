@@ -10,7 +10,10 @@ Response::Response(t_client& client ): m_client(client) {
 		createErrorResponse(client.request->getInvalidRequest());
 		return ;
 	}
-
+	if (client.request->getIsCgi()){
+		createCgiResponse();
+		return ;
+	}
 	m_responseMap.insert(std::pair<std::string, funcPtr>("GET", &Response::getResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("POST", &Response::postResponse));
 	m_responseMap.insert(std::pair<std::string, funcPtr>("DELETE", &Response::deleteResponse));
@@ -19,6 +22,44 @@ Response::Response(t_client& client ): m_client(client) {
 
 }
 
+void Response::createCgiResponse( void ){
+	if (m_client.body.find("\r\n\r\n") == std::string::npos){
+		createErrorResponse("500 Internal Server Error\n");
+		return ;
+	}
+	std::stringstream stream(m_client.body.substr(0, m_client.body.find("\r\n\r\n")));
+	m_client.body.erase(0, stream.str().size() + 4);
+
+	std::string line;
+	std::string contentType, location, status;
+	while (std::getline(stream, line)){
+		std::string identifier = getFirstWord(line);
+		if (identifier == "Content-type:"){
+			m_fileType = line;
+		}
+		else if (identifier == "Location:" ){
+			location = line;
+		}
+		else if (identifier == "Status:") {
+			status = line;
+		}
+		else {
+			createErrorResponse("500 Internal Server Error\n");
+			return ;
+		}
+	}
+	if (!location.empty()){
+		m_fileType.clear();
+		createResponse("200 Ok\n",  createStringFromFile("." + m_client.config.root + location));
+	}
+	else if (!status.empty()){
+		createResponse(status, m_client.body);
+	}
+	else {
+		createResponse("200 Ok\n", m_client.body);
+	}
+
+}
 
 /* lists all files in path, excluding "." && ".." */
 std::string Response::showDir(std::string path){
@@ -43,6 +84,9 @@ std::string Response::showDir(std::string path){
 }
 
 std::string Response::FileType( void ) {
+	if (!m_fileType.empty()){
+		return m_fileType;
+	}
 	std::string extension = m_client.request->getPath().substr(1);
 	extension.erase(0, m_client.request->getPath().find_last_of('.'));
 	if (extension.find_first_of('/') != extension.find_last_of('/')){
@@ -82,7 +126,6 @@ void Response::createErrorResponse(const std::string& errorCode){
 	createResponse(errorCode, createStringFromFile("." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)]));
 }
 
-
 std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
 	file.open(fileName.c_str());
@@ -121,7 +164,6 @@ void Response::postResponse( Request *request ){
 	}
 
 	std::string filename = request->getPath().substr(request->getPath().find(m_client.location.path) + m_client.location.path.size() + 1);
-	std::cout << RED << filename << std::endl << RESET;
 	if (filename.find('/') != std::string::npos){
 		createErrorResponse("400 Bad Request\n");
 		return ;

@@ -88,7 +88,7 @@ void Config::addLocation(std::string newLocation, t_config& serverConfig) {
 		try {
 			(*m_locationFunctions.at(identifier))(line, location);
 		} catch (std::exception &e){
-			throw configException("invalid Identifier in("+ locationPath + "): " + identifier);
+			throw configException(e.what());
 		}
 	}
 	location.path = locationPath;
@@ -124,7 +124,7 @@ void Config::addServerConfig(std::string& in) {
 		try {
 			(*m_configFunctions.at(identifier))(line, serverConfig);
 		} catch (std::exception &e){
-			throw configException("invalid Identifier in Server: " + identifier);
+			throw configException(e.what());
 		}
 	}
 	m_serverConfig.push_back(serverConfig);

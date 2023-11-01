@@ -57,13 +57,11 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 }
 
 void Request::checkFilePermissions(void){
-
 	if (cgi_isCgi){
 		if (!m_client.location.cgiScript.empty()){
 			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : m_client.location.cgiScript;
 		}
 		if (access(m_requestPath.c_str(), X_OK) == -1) {
-			std::cout << "REACHED: " << m_requestPath << std::endl;
 			m_invalidRequest = "403 Forbidden\n";
 		}
 	} else if (m_requestType == "POST"){
@@ -84,6 +82,7 @@ void Request::setIsCgi(void){
 	}
 	cgi_isCgi = true;
 	if (!std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
+			cgi_scriptName = m_requestPath.substr(m_requestPath.find(CGI_PATH) + std::strlen(CGI_PATH) + 1);
 			return ;
 	}
 	std::string extension = "."  + m_client.location.path.substr(2);
@@ -112,14 +111,18 @@ void Request::validateExtension(std::string& extension, t_location& location){
 }
 
 void Request::setPathInfo(void){
-	std::string pathInfo = m_requestPath.substr(1);
-	if (pathInfo.find('.') == std::string::npos) {
+	cgi_pathInfo = m_requestPath.substr(1);
+	if (cgi_pathInfo.find('.') == std::string::npos) {
+		cgi_pathInfo.clear();
 		return ;
 	}
-	pathInfo.erase(0, pathInfo.find('.') + 1);
-	if (pathInfo.find('/') != std::string::npos) {
-		cgi_pathInfo = pathInfo.substr(pathInfo.find('/'));
+	cgi_pathInfo.erase(0, cgi_pathInfo.find('.') + 1);
+	if (cgi_pathInfo.find('/') != std::string::npos) {
+		cgi_pathInfo.erase(0, cgi_pathInfo.find('/'));
 		m_requestPath.resize(m_requestPath.find(cgi_pathInfo));
+	}
+	else {
+		cgi_pathInfo.clear();
 	}
 }
 

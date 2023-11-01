@@ -19,6 +19,7 @@ class Response {
     private:
         t_client&   m_client;
         std::string m_response;
+        std::string m_fileType;
         int         m_responseSize;
         typedef void (Response::*funcPtr)(Request*);
         
@@ -26,7 +27,6 @@ class Response {
         void getResponse( Request *request );
         void postResponse( Request *request );
         void deleteResponse( Request *request );
-        void putResponse( Request *request );
 
         std::string createStringFromFile(std::string fileName);
         std::string showDir(std::string path);
@@ -35,7 +35,7 @@ class Response {
         void executeCGI(void);
         std::string FileType( void );
         std::string postExtension( void );
-
+        void createCgiResponse( void );
 };
 
 

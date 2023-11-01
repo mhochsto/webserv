@@ -35,12 +35,12 @@ CgiHandler::CgiHandler( t_client& client ) : m_client(client) {
 	m_envStr.push_back("SERVER_PORT=" + ssport.str());
 	m_envStr.push_back("REQUEST_METHOD=" + client.request->getType());
 	m_envStr.push_back("PATH_INFO=" + client.request->getPathInfo());
-	m_envStr.push_back("PATH_TRANSLATED=" + client.request->getClient().config.root + "/" + client.request->getPath());
+	m_envStr.push_back("PATH_TRANSLATED=" + client.request->getPath().substr(1) + client.request->getPathInfo() + (client.request->getQueryString().empty() ? "" : "?" + client.request->getQueryString()));
 	m_envStr.push_back("SCRIPT_NAME=" + client.request->getScriptName());
 	m_envStr.push_back("QUERY_STRING=" + client.request->getQueryString());
 	m_envStr.push_back("REMOTE_HOST=" + client.request->getClientIP());
 	m_envStr.push_back("REMOTE_ADDR=" + client.request->getClientIP());
-	m_envStr.push_back("CONTENT_TYPE=html");
+	m_envStr.push_back("CONTENT_TYPE=" + client.request->get("Content-Type"));
 	m_envStr.push_back("CONTENT_LENGTH=" + ssSize.str());
 	m_envStr.push_back("HTTP_ACCEPT=" + client.request->get("Accept"));
 	m_envStr.push_back("HTTP_USER_AGENT=" + client.request->get("User-Agent"));
@@ -88,7 +88,6 @@ void CgiHandler::execute( void ) {
 	if (m_client.CgiPid ==  -1) {
 		throw std::runtime_error(SYS_ERROR("fork"));
 	}
-	std::cout << argv[0] << std::endl;
 	if (m_client.CgiPid == 0) {
 		if (dup2(m_in[READ], STDIN_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(m_out[WRITE], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));

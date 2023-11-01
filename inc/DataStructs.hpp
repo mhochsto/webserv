@@ -58,6 +58,7 @@ typedef struct s_config {
 	std::string							root;
 	std::string							index;
 	std::string							serverName;
+	std::string							serverIP;
     stringMap							redirects;
     stringMap							errorPages;
     locationMap							locations;

@@ -23,7 +23,6 @@ class CgiHandler {
 		std::string& getOutput( void );
 		t_client& getClient( void );
 		bool isPipeFd(int fd);
-		void closeCgiSockets( void );
 		void CgiSocketsToRemove( int *in, int *out );
 		const std::string& getExtension();
 
