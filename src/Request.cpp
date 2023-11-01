@@ -28,6 +28,9 @@ void Request::checkBodyLength(void){
 }
 
 void	Request::checkIfDirectoryShouldBeShown( void ) {
+	if (m_requestType == "POST"){
+		return ;
+	}
 	struct stat statbuf;
 	std::memset(&statbuf, 0 , sizeof(struct stat));
 	if (stat(m_requestPath.c_str(), &statbuf) == -1){
@@ -54,13 +57,17 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 }
 
 void Request::checkFilePermissions(void){
+
 	if (cgi_isCgi){
 		if (!m_client.location.cgiScript.empty()){
 			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : m_client.location.cgiScript;
 		}
 		if (access(m_requestPath.c_str(), X_OK) == -1) {
+			std::cout << "REACHED: " << m_requestPath << std::endl;
 			m_invalidRequest = "403 Forbidden\n";
 		}
+	} else if (m_requestType == "POST"){
+		return ;
 	}
 	else if (access(m_requestPath.c_str(), F_OK) == -1){
 		m_invalidRequest = "404 NotFound\n";
@@ -247,6 +254,8 @@ std::vector<pollfd>& Request::getPollfds( void ) { return cgi_pollfds;}
 t_client& Request::getClient( void ){ return m_client;}
 
 void	Request::setPath( std::string newPath ) { m_requestPath = newPath; }
+
+void	Request::setInvalidRequest(std::string invalidRequest) { m_invalidRequest = invalidRequest; }
 
 bool	Request::getIsCgi( void ) {return cgi_isCgi;}
 

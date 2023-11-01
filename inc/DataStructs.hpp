@@ -43,6 +43,8 @@ typedef struct s_config {
 		errorPages["403"] = SERVER_ERROR_PAGE_403;
 		errorPages["404"] = SERVER_ERROR_PAGE_404;
 		errorPages["405"] = SERVER_ERROR_PAGE_405;
+		errorPages["408"] = SERVER_ERROR_PAGE_408;
+		errorPages["409"] = SERVER_ERROR_PAGE_409;
 		errorPages["413"] = SERVER_ERROR_PAGE_413;
 		errorPages["500"] = SERVER_ERROR_PAGE_500;
 		errorPages["502"] = SERVER_ERROR_PAGE_502;
@@ -61,14 +63,14 @@ typedef struct s_config {
     locationMap							locations;
 } t_config;
 
-enum RecieveState { header, body, chunk, done};
 
+enum RecieveState { header, body, chunk, done};
 typedef struct s_client {
 
 	s_client(){
 		fd = 0;
 		serverFD = 0;
-		chunkSizeLong = 0;
+		chunkSizeLong = UNSET;
 		request = NULL;
 		cgi = NULL;
 		activeCGI = false;
@@ -90,7 +92,7 @@ typedef struct s_client {
 	t_location				location;
 	Request 				*request;
 	CgiHandler				*cgi;
-
+	time_t					lastAction;
 } t_client;
 
 

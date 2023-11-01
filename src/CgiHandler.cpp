@@ -23,7 +23,7 @@ we set REMOTE_HOST to REMOTE_ADDR by default.
 Overview of available Variables:
 https://www6.uniovi.es/~antonio/ncsa_httpd/cgi/env.html */
 CgiHandler::CgiHandler( t_client& client ) : m_client(client) {
-
+	client.lastAction = time(NULL);
 	std::stringstream ssport;
 	std::stringstream ssSize;
 	ssport << client.request->getClient().config.port;
@@ -62,7 +62,7 @@ std::string CgiHandler::findExecutablePath( std::string path ){
 		return "/usr/bin/node";
 	}
 	else if (m_extension == "py"){
-		path.insert(0, "/usr/bin/python3");
+		return "/usr/bin/python3";
 	}
 	return path;
 }
@@ -88,6 +88,7 @@ void CgiHandler::execute( void ) {
 	if (m_client.CgiPid ==  -1) {
 		throw std::runtime_error(SYS_ERROR("fork"));
 	}
+	std::cout << argv[0] << std::endl;
 	if (m_client.CgiPid == 0) {
 		if (dup2(m_in[READ], STDIN_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(m_out[WRITE], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
@@ -117,6 +118,12 @@ bool CgiHandler::isPipeFd(int fd){
 		return true;
 	}
 	return false;
+}
+
+
+void CgiHandler::CgiSocketsToRemove( int *in, int *out ){
+	*in = m_in[WRITE];
+	*out = m_out[READ];
 }
 
 std::string& CgiHandler::getOutput( void ) {return m_output;}

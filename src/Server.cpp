@@ -104,7 +104,7 @@ t_client* Server::findClient(int pipeFd){
 
 void Server::run( void ){
 	while (true){
-		if (poll(m_sockets.data(), m_sockets.size(), TIMEOUT) == -1){
+		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
 			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); ++i){
@@ -115,8 +115,13 @@ void Server::run( void ){
 				}
 			}
 			else if (m_sockets.at(i).revents != 0 && m_clients.find(m_sockets.at(i).fd) != m_clients.end()) { // is clientSocket
+				if (m_clients[m_sockets.at(i).fd].lastAction + CLIENT_TIMEOUT < time(NULL)){
+					removeClient(m_clients[m_sockets.at(i).fd]);
+					continue ;
+				}
 				if (m_sockets.at(i).revents & POLLIN) {
 					recieveRequest(m_clients[m_sockets.at(i).fd]);
+					m_clients[m_sockets.at(i).fd].lastAction = time(NULL);
 				}
 				else if (m_sockets.at(i).revents & POLLOUT && m_clients[m_sockets.at(i).fd].recieving == done){
 					if (activeCGI(m_clients[m_sockets.at(i).fd])){
@@ -126,14 +131,18 @@ void Server::run( void ){
 				}
 				else if (m_sockets.at(i).revents & (POLLHUP | POLLERR)){
 					removeClient(m_clients[m_sockets.at(i).fd]);
-					continue ;
 				}
 		   }
-		   else if (findClient(m_sockets.at(i).fd)) { //is pipe
-
+		   else if (findClient(m_sockets.at(i).fd)) { //is pipe  ---> both sockets need to be removed <---
 				t_client *cgiClient = findClient(m_sockets.at(i).fd);
-				if (!cgiClient){
-					removeFdFromSocketVec(m_sockets.at(i).fd);
+				if (cgiClient->lastAction + CGI_TIMEOUT < time(NULL)){
+					kill(cgiClient->CgiPid, SIGKILL);
+					int in, out;
+					cgiClient->cgi->CgiSocketsToRemove(&in, &out);
+					removeFdFromSocketVec(in);
+					removeFdFromSocketVec(out);
+					cgiClient->request->setInvalidRequest("408 Request Timeout\n");
+					sendResponse(*cgiClient);
 					continue ;
 				}
 		   		if (m_sockets.at(i).revents & POLLIN){
@@ -152,7 +161,10 @@ void Server::run( void ){
 						continue;
 					}
 					if (rd == 0){
-						removeFdFromSocketVec(m_sockets.at(i).fd);
+						int in, out;
+						cgiClient->cgi->CgiSocketsToRemove(&in, &out);
+						removeFdFromSocketVec(in);
+						removeFdFromSocketVec(out);
 						cgiClient->body = cgiClient->cgi->getOutput();
 						kill(cgiClient->CgiPid, SIGKILL);
 						cgiClient->activeCGI = false;
@@ -188,9 +200,9 @@ void Server::addConnection( int serverFD ){
 	newClient.fd = newClientPoll.fd;
 	newClient.serverFD = serverFD;
 	newClient.ip = convertIPtoString(newClientAddr.sin_addr.s_addr);
-	newClient.chunkSizeLong = -1;
 	newClient.config = setConfig(serverFD);
 	newClient.recieving = header;
+	newClient.lastAction = time(NULL);
 	newClient.socketVector = &m_sockets;
 	m_clients[newClient.fd] = newClient;
 	print(Notification, "new Client added (ip): " + newClient.ip);

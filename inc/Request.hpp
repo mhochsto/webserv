@@ -42,6 +42,7 @@ class Request {
 		bool				getIsCgi( void );
 		bool				getShowDir( void );
 		void		setPath( std::string newPath );
+		void		setInvalidRequest(std::string invalidRequest);
 	private:
 		t_client&					m_client;
 		std::string	     			m_requestType;

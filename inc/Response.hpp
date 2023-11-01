@@ -32,9 +32,10 @@ class Response {
         std::string showDir(std::string path);
         void createResponse(std::string rspType, std::string file);
         void createErrorResponse( const std::string& errorCode );
-        void createCgiResponse(void);
         void executeCGI(void);
         std::string FileType( void );
+        std::string postExtension( void );
+
 };
 
 

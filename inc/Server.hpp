@@ -1,28 +1,31 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <vector>
-#include <iostream>
-#include <exception>
-#include <cstring>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <netdb.h>
+# include <unistd.h>
 # include <poll.h>
-#include <cerrno>
-#include <fstream>
-#include <sstream>
-#include <sys/stat.h>
-#include <algorithm>
-#include <numeric>
+# include <vector>
+# include <iostream>
+# include <exception>
+# include <cstring>
+# include <cerrno>
+# include <fstream>
+# include <sstream>
+# include <algorithm>
+# include <numeric>
 # include <csignal>
+# include <ctime>
 # include "Config.hpp"
 
 # define CLIENT_MAX 200
-# define TIMEOUT 5000 //ms
 
+/* Note that CLIENT_TIMEOUT should be >CGI_TIMOUT */
+# define CLIENT_TIMEOUT 30 //s
+# define CGI_TIMEOUT 5 // s
 class Config;
 
 class Server {
