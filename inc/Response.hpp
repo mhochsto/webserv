@@ -36,6 +36,7 @@ class Response {
         std::string FileType( void );
         std::string postExtension( void );
         void createCgiResponse( void );
+        std::string createEmergencyPage(std::string errorCode);
 };
 
 

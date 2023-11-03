@@ -74,7 +74,7 @@ std::string Response::showDir(std::string path){
 	directory = readdir(dir);
 	while ( directory ){
  		if (std::string(directory->d_name) != "." && std::string(directory->d_name) != ".."){
-			file << "			<li><a href ='" << path + "/" + std::string(directory->d_name) << "'>" << directory->d_name << "</li>\n";
+			file << "			<li><a href ='" <<  std::string(directory->d_name) << "'>" << directory->d_name << "</li>\n";
 		}
 		directory = readdir(dir);
 	}
@@ -124,9 +124,32 @@ void Response::createResponse(std::string rspType, std::string file){
 	m_responseSize = m_response.length();
 }
 
-/* just for readability */
+
+std::string Response::createEmergencyPage(std::string errorCode){
+	std::stringstream page;
+	errorCode.erase(errorCode.find('\n'));
+	page << "	<!doctype html>";
+	page << "<html>";
+	page << "  <head>";
+	page << "    <meta name ='viewport' content='width=device-width, initital-scale=1.0'>";
+	page << "    <title>"<< errorCode <<"</title>";
+	page << "  </head>";
+	page << "  <body>";
+	page << "    <h1><strong>"<< errorCode <<"</strong></h1>";
+	page << "  </body>";
+	page << "</html>";
+	return page.str();
+}
+
 void Response::createErrorResponse(const std::string& errorCode){
-	createResponse(errorCode, createStringFromFile("." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)]));
+	
+	std::string errorPagePath = "." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)];
+	if (access(errorPagePath.c_str(), R_OK) == 0){
+		createResponse(errorCode, createStringFromFile(errorPagePath));
+	}
+	else {
+		createResponse(errorCode, createEmergencyPage(errorCode));
+	}
 }
 
 std::string Response::createStringFromFile(std::string fileName){
