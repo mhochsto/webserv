@@ -170,7 +170,8 @@ void Response::postResponse( Request *request ){
 		return ;
 	}
 	std::fstream newFile;
-	newFile.open((request->getPath() + postExtension()).c_str(), std::ios::out);
+	std::string fileName = m_client.location.proxyPass.empty() ? (request->getPath() + postExtension()) :  "." + m_client.config.root + m_client.location.proxyPass + request->getPath().substr(request->getPath().find_last_of('/')) + postExtension();
+	newFile.open(fileName.c_str(), std::ios::out);
 	if (!newFile.is_open()){
 		createErrorResponse("500 Internal Server Error\n");
 		return ;

@@ -344,7 +344,6 @@ void Server::saveChunk(t_client& client){
 	if (client.chunkSizeLong == 0 ){
 		if (client.chunk == "\r\n" || client.chunk == "0\r\n\r\n"){
 			client.recieving = done;
-			std::cout << "reached\n";
 		}
 		return ;
 	}

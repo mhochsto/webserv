@@ -15,6 +15,25 @@ http://www.tooplate.com/view/2110-character
     <link rel="stylesheet" href="css/all.min.css">
     <!-- https://fontawesome.com/ -->
     <link rel="stylesheet" href="css/tooplate-style.css">
+   
+   <script>
+    function generateRandomString(length) {
+        const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let randomString = "";
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            randomString += charset.charAt(randomIndex);
+        }
+        return randomString;
+    }
+
+    function setRandomAction() {
+        var randomString = generateRandomString(10);
+        document.getElementById('form').action = randomString + '.html';
+    }
+    </script>
+    
+
 </head>
 
 <body class="tm-bg-dark">
@@ -80,7 +99,7 @@ http://www.tooplate.com/view/2110-character
                         Contact Us
                     </h2>
                 </header>
-                <form action="index.html" class="tm-contact-form" method="POST">
+                <form action="" class="tm-contact-form" id ="form" method="POST">
                     <div class="tm-form-group">
                         <input type="text" id="contact_name" name="contact_name" class="form-control" placeholder="Name" required/>
                     </div>
@@ -91,7 +110,8 @@ http://www.tooplate.com/view/2110-character
                         <textarea rows="5" id="contact_message" name="contact_message" class="form-control" placeholder="Message" required></textarea>
                     </div>
                     <div class="tm-text-right">
-                        <button type="submit" class="tm-btn tm-btn-secondary tm-btn-pad-big">Send</button>
+
+                        <button onclick="setRandomAction()" type="submit" class="tm-btn tm-btn-secondary tm-btn-pad-big">Send</button>
                     </div>
                 </form>
             </div>
