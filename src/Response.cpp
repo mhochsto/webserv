@@ -6,6 +6,10 @@
 # include "CgiHandler.hpp"
 
 Response::Response(t_client& client ): m_client(client) {
+	if (client.request->getIsRedirect()){
+		createResponse(client.request->getType() == "POST" ? "308 Permanent Redirect\nLocation: " : "301 Moved Permanently\nLocation: " + client.request->getPath() + "\n","");
+		return ;
+	}
 	if (!client.request->getInvalidRequest().empty()){
 		createErrorResponse(client.request->getInvalidRequest());
 		return ;
@@ -32,15 +36,16 @@ void Response::createCgiResponse( void ){
 
 	std::string line;
 	std::string contentType, location, status;
+
 	while (std::getline(stream, line)){
 		std::string identifier = getFirstWord(line);
-		if (identifier == "Content-type:"){
+		if (identifier == "Content-type:" && m_fileType.empty()){
 			m_fileType = line;
 		}
-		else if (identifier == "Location:" ){
+		else if (identifier == "Location:"&& location.empty() ){
 			location = line;
 		}
-		else if (identifier == "Status:") {
+		else if (identifier == "Status:"&& status.empty()) {
 			status = line;
 		}
 		else {
@@ -50,15 +55,10 @@ void Response::createCgiResponse( void ){
 	}
 	if (!location.empty()){
 		m_fileType.clear();
-		createResponse("200 Ok\n",  createStringFromFile("." + m_client.config.root + location));
+		createResponse(status.empty() ? "302 Found\n" : status, "Location: " + location);
+		return ;
 	}
-	else if (!status.empty()){
-		createResponse(status, m_client.body);
-	}
-	else {
-		createResponse("200 Ok\n", m_client.body);
-	}
-
+	createResponse(status.empty() ? "200 Ok\n": status, m_client.body);
 }
 
 /* lists all files in path, excluding "." && ".." */
@@ -86,6 +86,9 @@ std::string Response::showDir(std::string path){
 std::string Response::FileType( void ) {
 	if (!m_fileType.empty()){
 		return m_fileType;
+	}
+	if (m_client.request->getPath().empty()){
+		return "text/html";
 	}
 	std::string extension = m_client.request->getPath().substr(1);
 	extension.erase(0, m_client.request->getPath().find_last_of('.'));
@@ -162,13 +165,7 @@ void Response::postResponse( Request *request ){
 		createResponse("200 OK\n", showDir(request->getPath()));
 		return ;
 	}
-
-	std::string filename = request->getPath().substr(request->getPath().find(m_client.location.path) + m_client.location.path.size() + 1);
-	if (filename.find('/') != std::string::npos){
-		createErrorResponse("400 Bad Request\n");
-		return ;
-	}
-	if (!access(request->getPath().c_str(), F_OK)){
+	if (!access((request->getPath()+ postExtension()).c_str(), F_OK)){
 		createErrorResponse("409 Conflict\n");
 		return ;
 	}
@@ -180,16 +177,25 @@ void Response::postResponse( Request *request ){
 	}
 	newFile << request->getBody();
 	newFile.close();
-	createResponse("200 OK\n", "Data saved successfully\n");
+	createResponse("201 Created\nLocation: " + request->getPath() + postExtension(), "Data saved successfully\n");
 }
 
 void Response::deleteResponse( Request *request ){
-
-	if (remove(std::string(m_client.config.root + request->getPath()).c_str())  == 0){
-		createResponse("204 No Content\n", "");
+	if (access(request->getPath().c_str(), F_OK)){
+		if (access(request->getPath().c_str(), W_OK)){
+			if (remove(std::string(request->getPath()).c_str())  == 0){
+				createResponse("204 No Content\n", "");
+			}
+			else {
+				createErrorResponse("500 Internal Server Error\n");
+			}
+		}
+		else {
+			createErrorResponse("403 Forbidden\n");
+		}
 	}
 	else {
-		createErrorResponse("400 File not Found\n");
+		createErrorResponse("404 File not Found\n");
 	}
 }
 

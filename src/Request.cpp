@@ -1,12 +1,15 @@
 #include "Request.hpp"
 
-Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false) {
+Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false), m_isRedirect(false) {
 
 	if (parseHeader()){
 		return ;
 	}
 	m_requestBody = client.body;
 	setRedirects();
+	if (m_isRedirect){
+		return ;
+	}
 	setRoot();
 	setPathInfo();
 	setIsCgi();
@@ -28,8 +31,8 @@ void Request::checkBodyLength(void){
 }
 
 void	Request::checkIfDirectoryShouldBeShown( void ) {
-	if (m_requestType == "POST"){
-		return ;
+	 if (m_requestType == "POST"){
+	 	return ;
 	}
 	struct stat statbuf;
 	std::memset(&statbuf, 0 , sizeof(struct stat));
@@ -47,7 +50,6 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 		else if (!m_client.location.index.empty()){
 			m_requestPath.append("/" + m_client.location.index);
 			checkFilePermissions();
-
 		}
 		else {
 			m_invalidRequest = "403 Forbidden\n";
@@ -147,13 +149,12 @@ void Request::setRoot( void ) {
 	}
 }
 
-/* changes requestPath to the redirection Path; 
-we re-set the location, in case of a different location block for the "new" url */
 void Request::setRedirects( void ){
-	if (m_client.config.redirects.find(m_requestPath) != m_client.config.redirects.end()){
-		m_requestPath = m_client.config.redirects[m_requestPath];
+	if (m_client.config.redirects.find(m_requestPath) == m_client.config.redirects.end()){
+		return ;
 	}
-	m_client.location = m_client.config.locations[getLocationName()];
+	m_requestPath = m_client.config.redirects[m_requestPath];
+	m_isRedirect = true;
 }
 
 void Request::validateRequestType(const t_location& location){
@@ -262,4 +263,4 @@ void	Request::setInvalidRequest(std::string invalidRequest) { m_invalidRequest =
 
 bool	Request::getIsCgi( void ) {return cgi_isCgi;}
 
-
+bool	Request::getIsRedirect( void ) { return m_isRedirect;}

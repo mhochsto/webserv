@@ -125,13 +125,15 @@ void Server::run( void ){
 				}
 			}
 			else if (m_sockets.at(i).revents != 0 && m_clients.find(m_sockets.at(i).fd) != m_clients.end()) { // is clientSocket
-				if (m_clients[m_sockets.at(i).fd].lastAction + CLIENT_TIMEOUT < time(NULL)){
-					removeClient(m_clients[m_sockets.at(i).fd]);
+				if (m_clients[m_sockets.at(i).fd].lastAction + REQUEST_TIMEOUT < time(NULL) && !m_clients[m_sockets.at(i).fd].header.empty()){
+					t_client *currentClient = &m_clients[m_sockets.at(i).fd];
+					currentClient->header.append("\r\n\r\nBad Request");
+					currentClient->request = new Request(*currentClient, m_sockets);
+					sendResponse(m_clients[m_sockets.at(i).fd]);
 					continue ;
 				}
 				if (m_sockets.at(i).revents & POLLIN) {
 					recieveRequest(m_clients[m_sockets.at(i).fd]);
-					m_clients[m_sockets.at(i).fd].lastAction = time(NULL);
 				}
 				else if (m_sockets.at(i).revents & POLLOUT && m_clients[m_sockets.at(i).fd].recieving == done){
 					if (activeCGI(m_clients[m_sockets.at(i).fd])){
@@ -340,8 +342,9 @@ int Server::setChunkSize( t_client& client ){
 /* +2 for "\r\n" */
 void Server::saveChunk(t_client& client){
 	if (client.chunkSizeLong == 0 ){
-		if (client.chunk == "\r\n"){
+		if (client.chunk == "\r\n" || client.chunk == "0\r\n\r\n"){
 			client.recieving = done;
+			std::cout << "reached\n";
 		}
 		return ;
 	}
@@ -364,14 +367,14 @@ void Server::saveChunk(t_client& client){
 }
 
 void Server::recieveRequest( t_client& client ){
-
+	client.lastAction = time(NULL);
 	switch (client.recieving){
 		case header:
 			if (recvFromClient(client.header, client) <= 0){
 				return ;	
 			}
 			setRecieveState(client);
-			break ;
+			break;
 		case body:
 			if (recvFromClient(client.body, client) <= 0){
 				return ;

@@ -23,9 +23,9 @@
 
 # define CLIENT_MAX 200
 
-/* Note that CLIENT_TIMEOUT should be >CGI_TIMOUT */
-# define CLIENT_TIMEOUT 30 //s
-# define CGI_TIMEOUT 5 // s
+/* Note that REQUEST_TIMEOUT should be >CGI_TIMOUT */
+# define REQUEST_TIMEOUT 3 //s
+# define CGI_TIMEOUT 1 // s
 class Config;
 
 class Server {
@@ -51,6 +51,8 @@ class Server {
 		void 		saveChunk(t_client& client);
 		void 		sendResponse(t_client& client);
 		void 		removeFdFromSocketVec( int fd );
+		void 		handleCgiSockets( pollfd& currentSocket );
+		void		handleClientSockets( pollfd& currentSocket);
 };
 
 #endif
