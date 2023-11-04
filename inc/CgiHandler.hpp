@@ -19,12 +19,12 @@ class Request;
 class CgiHandler {
 	public:
 		CgiHandler(t_client& client);
-		void execute( void );
-		std::string& getOutput( void );
-		t_client& getClient( void );
-		bool isPipeFd(int fd);
-		void CgiSocketsToRemove( int *in, int *out );
-		const std::string& getExtension();
+		void				execute( void );
+		std::string&		getOutput( void );
+		t_client&			getClient( void );
+		bool				isPipeFd(int fd);
+		void				CgiSocketsToRemove( int *in, int *out );
+		const std::string&	getExtension();
 
 	private:
 		t_client&							m_client;
@@ -34,9 +34,10 @@ class CgiHandler {
 		std::vector<char *>					m_envCharPtr;
 		int 								m_in[2];
 		int									m_out[2];								
+		
 		std::string getPathInfo(std::string path);
 		std::string findExecutablePath( std::string path );
-		void prepSockets(void);
+		void 		prepSockets(void);
 };
 
 #endif

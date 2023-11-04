@@ -51,8 +51,10 @@ class Server {
 		void 		saveChunk(t_client& client);
 		void 		sendResponse(t_client& client);
 		void 		removeFdFromSocketVec( int fd );
-		void 		handleCgiSockets( pollfd& currentSocket );
-		void		handleClientSockets( pollfd& currentSocket);
+		void 		handleCgiSockets( pollfd& pollfd );
+		void 		handleClient(pollfd& client);
+		bool		isClientSocket(pollfd& pollfd){ return pollfd.revents != 0 && m_clients.find(pollfd.fd) != m_clients.end();}
+		void		removeCgiSockets(t_client *cgiClient);
 };
 
 #endif

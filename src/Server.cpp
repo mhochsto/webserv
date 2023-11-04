@@ -109,6 +109,72 @@ t_client* Server::findClient(int pipeFd){
 	return NULL;
 }
 
+
+void Server::handleClient(pollfd& client){
+	if (m_clients[client.fd].lastAction + REQUEST_TIMEOUT < time(NULL) && !m_clients[client.fd].header.empty()){
+		t_client *currentClient = &m_clients[client.fd];
+		currentClient->header.append("\r\n\r\nBad Request");
+		currentClient->request = new Request(*currentClient, m_sockets);
+		sendResponse(m_clients[client.fd]);
+		return ;
+	}
+	if (client.revents & POLLIN) {
+		recieveRequest(m_clients[client.fd]);
+	}
+	else if (client.revents & POLLOUT && m_clients[client.fd].recieving == done){
+		if (activeCGI(m_clients[client.fd])){
+			return ;
+		}
+		sendResponse(m_clients[client.fd]);
+	}
+	else if (client.revents & (POLLHUP | POLLERR)){
+		removeClient(m_clients[client.fd]);
+	}
+}
+
+void Server::removeCgiSockets(t_client *cgiClient){
+	int in, out;
+	cgiClient->cgi->CgiSocketsToRemove(&in, &out);
+	removeFdFromSocketVec(in);
+	removeFdFromSocketVec(out);
+	kill(cgiClient->CgiPid, SIGKILL);
+}
+
+void Server::handleCgiSockets(pollfd& pollfd){
+	t_client *cgiClient = findClient(pollfd.fd);
+	if (cgiClient->lastAction + CGI_TIMEOUT < time(NULL)){
+		removeCgiSockets(cgiClient);
+		cgiClient->request->setInvalidRequest("408 Request Timeout\n");
+		sendResponse(*cgiClient);
+		return ;
+	}
+
+  	if (pollfd.revents & POLLIN){
+		int wt = write(pollfd.fd, cgiClient->body.c_str(), cgiClient->body.length());
+		cgiClient->body.erase(0, wt);
+		if (wt <= 0 || cgiClient->body.size() == 0){
+			removeFdFromSocketVec(pollfd.fd);
+			return ;
+		}
+	}
+	else if (pollfd.revents & POLLOUT){
+		char buf[1024];
+		std::memset(buf, 0, 1024);
+		int rd = read(pollfd.fd, buf, 1024);
+		if (rd == -1){ //  rd == -1 happens if Script is not done with execution yet. 
+			return;
+		}
+		if (rd == 0){
+			removeCgiSockets(cgiClient);
+			cgiClient->body = cgiClient->cgi->getOutput();
+			cgiClient->activeCGI = false;
+			return ;
+		}
+		cgiClient->cgi->getOutput() += buf;
+	}
+	pollfd.revents = 0;
+}
+
 void Server::run( void ){
 	if (m_sockets.size() == 0){
 		throw std::runtime_error("Server::No open Server Sockets");
@@ -118,73 +184,17 @@ void Server::run( void ){
 			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); ++i){
-			if (isServerSocket(m_sockets.at(i).fd)){ // is serverSocket
+			if (isServerSocket(m_sockets.at(i).fd)){
 				if (m_sockets.at(i).revents & POLLIN){
 					addConnection(m_sockets.at(i).fd);
 					m_sockets.at(i).revents = 0;
 				}
 			}
-			else if (m_sockets.at(i).revents != 0 && m_clients.find(m_sockets.at(i).fd) != m_clients.end()) { // is clientSocket
-				if (m_clients[m_sockets.at(i).fd].lastAction + REQUEST_TIMEOUT < time(NULL) && !m_clients[m_sockets.at(i).fd].header.empty()){
-					t_client *currentClient = &m_clients[m_sockets.at(i).fd];
-					currentClient->header.append("\r\n\r\nBad Request");
-					currentClient->request = new Request(*currentClient, m_sockets);
-					sendResponse(m_clients[m_sockets.at(i).fd]);
-					continue ;
-				}
-				if (m_sockets.at(i).revents & POLLIN) {
-					recieveRequest(m_clients[m_sockets.at(i).fd]);
-				}
-				else if (m_sockets.at(i).revents & POLLOUT && m_clients[m_sockets.at(i).fd].recieving == done){
-					if (activeCGI(m_clients[m_sockets.at(i).fd])){
-						continue ;
-					}
-					sendResponse(m_clients[m_sockets.at(i).fd]);
-				}
-				else if (m_sockets.at(i).revents & (POLLHUP | POLLERR)){
-					removeClient(m_clients[m_sockets.at(i).fd]);
-				}
+			else if (isClientSocket(m_sockets.at(i))) {
+				handleClient(m_sockets.at(i));
 		   }
-		   else if (findClient(m_sockets.at(i).fd)) { //is pipe  ---> both sockets need to be removed <---
-				t_client *cgiClient = findClient(m_sockets.at(i).fd);
-				if (cgiClient->lastAction + CGI_TIMEOUT < time(NULL)){
-					kill(cgiClient->CgiPid, SIGKILL);
-					int in, out;
-					cgiClient->cgi->CgiSocketsToRemove(&in, &out);
-					removeFdFromSocketVec(in);
-					removeFdFromSocketVec(out);
-					cgiClient->request->setInvalidRequest("408 Request Timeout\n");
-					sendResponse(*cgiClient);
-					continue ;
-				}
-		   		if (m_sockets.at(i).revents & POLLIN){
-					int wt = write(m_sockets.at(i).fd, cgiClient->body.c_str(), cgiClient->body.length());
-					cgiClient->body.erase(0, wt);
-					if (wt <= 0 || cgiClient->body.size() == 0){
-						removeFdFromSocketVec(m_sockets.at(i).fd);
-						continue ;
-					}
-				}
-				else if (m_sockets.at(i).revents & POLLOUT){
-					char buf[1024];
-					std::memset(buf, 0, 1024);
-					int rd = read(m_sockets.at(i).fd, buf, 1024);
-					if (rd == -1){ //might be an issue;
-						continue;
-					}
-					if (rd == 0){
-						int in, out;
-						cgiClient->cgi->CgiSocketsToRemove(&in, &out);
-						removeFdFromSocketVec(in);
-						removeFdFromSocketVec(out);
-						cgiClient->body = cgiClient->cgi->getOutput();
-						kill(cgiClient->CgiPid, SIGKILL);
-						cgiClient->activeCGI = false;
-						continue ;
-					}
-					cgiClient->cgi->getOutput() += buf;
-				}
-				m_sockets.at(i).revents = 0;
+		   else if (findClient(m_sockets.at(i).fd)) {
+				handleCgiSockets(m_sockets.at(i));
 		   }
 		}
 	}
@@ -285,6 +295,8 @@ void Server::sendResponse( t_client& client){
 	client.chunkSizeLong = -1;
 	client.recieving = header;
 	client.activeCGI = false;
+	client.exptectedBodySize = 0;
+	client.CgiPid = 0;
 	if (client.request){
 		delete client.request;
 		client.request = NULL;
@@ -337,7 +349,6 @@ int Server::setChunkSize( t_client& client ){
 	client.chunk.erase(0, client.chunk.find("\r\n") + 2);
 	return 0;
 }
-
 
 /* +2 for "\r\n" */
 void Server::saveChunk(t_client& client){
