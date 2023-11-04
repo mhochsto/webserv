@@ -357,6 +357,12 @@ void Server::saveChunk(t_client& client){
 		client.chunk.erase(0, client.chunkSizeLong + 2);
 		client.chunkSizeLong = -1;
 		setChunkSize(client);
+		if (client.chunkSizeLong == 0 ){
+			if (client.chunk == "\r\n" || client.chunk == "0\r\n\r\n"){
+				client.recieving = done;
+			}
+			return ;
+		}
 	}
 	else if (client.chunk.find("\r\n") == client.chunk.size() - 2){
 		client.body += client.chunk.substr(0, client.chunkSizeLong);

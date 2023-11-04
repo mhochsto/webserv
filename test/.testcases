@@ -1,14 +1,14 @@
 GET for Homepage
-curl -X GET Domain
+curl -i -X GET Domain
 GET for File that doesn't exist
-curl -X GET Domain/doesnt_existasdasd
+curl -i -X GET Domain/doesnt_existasdasd
 GET with Body
-curl -X GET Domain -H "Transfer-Encoding: chunked" --data "this is a body" 
+curl -i -X GET Domain -H "Transfer-Encoding: chunked" --data "this is a body" 
 POST for Homepage no Body
-curl -X POST Domain
+curl -i -X POST Domain
 POST for Homepage with Body
-curl -X POST Domain --data "0this is a body" 
+curl -i -X POST Domain --data "0this is a body" 
 POST for /Post-bin with new file
-curl -X POST Domain/post-bin/test --data "1this is a body"
+curl -i -X POST Domain/post-bin/test --data "1this is a body"
 POST for /Post-bin with same file
-curl -X POST Domain/post-bin/test --data "2this is a body"
+curl -i -X POST Domain/post-bin/test --data "2this is a body"

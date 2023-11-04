@@ -1,0 +1,163 @@
+[95mStarting with Testcases from .testfile ....
+ [0m
+[91m
+Test: GET for Homepage
+Bash Command: curl -i -X GET localhost:7700
+
+++++ Return ++++ [0m
+HTTP/1.1 200 OK
+Date: Sat, 04 Nov 2023 10:23:05 CET
+Server: webserv
+Content-Length: 1293
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: GET for File that doesn't exist
+Bash Command: curl -i -X GET localhost:7700/doesnt_existasdasd
+
+++++ Return ++++ [0m
+HTTP/1.1 404 NotFound
+Date: Sat, 04 Nov 2023 10:23:05 CET
+Server: webserv
+Content-Length: 232
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: GET with Body
+Bash Command: curl -i -X GET localhost:7700 -H "Transfer-Encoding: chunked" --data "this is a body"
+
+++++ Return ++++ [0m
+HTTP/1.1 400 Bad Request
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 226
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: POST for Homepage no Body
+Bash Command: curl -i -X POST localhost:7700
+
+++++ Return ++++ [0m
+HTTP/1.1 405 Method Not Allowed
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 240
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: POST for Homepage with Body
+Bash Command: curl -i -X POST localhost:7700 --data "0this is a body"
+
+++++ Return ++++ [0m
+HTTP/1.1 405 Method Not Allowed
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 240
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: POST for /Post-bin with new file
+Bash Command: curl -i -X POST localhost:7700/post-bin/test --data "1this is a body"
+
+++++ Return ++++ [0m
+HTTP/1.1 409 Conflict
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 218
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+Test: POST for /Post-bin with same file
+Bash Command: curl -i -X POST localhost:7700/post-bin/test --data "2this is a body"
+
+++++ Return ++++ [0m
+HTTP/1.1 409 Conflict
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 218
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[95m
+Testing Chunked Request ...[0m
+[91m 
+GET
+ [0m
+[91m 
+++++ Return ++++ [0m
+HTTP/1.1 200 OK
+Date: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 1293
+Connection: keep-alive
+Content-Type: text/html
+[91m
+++++ END ++++ [0m
+[91m
+POST into Post-bin with random Filename
+
+++++ Return ++++ [0m
+HTTP/1.1 201 Created
+Location: ./website/post-bin/BzfRXDate: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 24
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[91m
+POST send two chunks at once
+
+++++ Return ++++ [0m
+HTTP/1.1 201 Created
+Location: ./website/post-bin/T6fJVDate: Sat, 04 Nov 2023 10:23:09 CET
+Server: webserv
+Content-Length: 24
+Connection: keep-alive
+Content-Type: text/html
+[91m++++ END ++++ [0m
+[95m
+Testing CGI ...[0m
+[91m
+CGI: Endless loop
+
+++++ Return ++++ [0m
+HTTP/1.1 408 Request Timeout
+Date: Sat, 04 Nov 2023 10:23:12 CET
+Server: webserv
+Content-Length: 234
+Connection: keep-alive
+Content-Type: text/html
+[91m
+++++ END ++++ [0m
+[91m
+CGI: Test script
+
+++++ Return ++++ [0m
+HTTP/1.1 200 Ok
+Date: Sat, 04 Nov 2023 10:23:12 CET
+Server: webserv
+Content-Length: 204
+Connection: keep-alive
+Content-Type: text/html
+[91m
+++++ END ++++ [0m
+[91m
+CGI: Print Enviroment
+
+++++ Return ++++ [0m
+HTTP/1.1 200 Ok
+Date: Sat, 04 Nov 2023 10:23:12 CET
+Server: webserv
+Content-Length: 443
+Connection: keep-alive
+Content-Type: text/html
+
+<!doctype html><p>SERVER_SOFTWARE=webserv/1.0</p><p>SERVER_NAME=</p><p>GATEWAY_INTERFACE=CGI/1.1</p><p>SERVER_PROTOCOL=HTTP/1.1</p><p>SERVER_PORT=7700</p><p>REQUEST_METHOD=POST</p><p>PATH_INFO=</p><p>PATH_TRANSLATED=/website/cgi-bin/environ_c.cgi</p><p>SCRIPT_NAME=environ_c.cgi</p><p>QUERY_STRING=</p><p>REMOTE_HOST=1.0.0.127</p><p>REMOTE_ADDR=1.0.0.127</p><p>CONTENT_TYPE=</p><p>CONTENT_LENGTH=0</p><p>HTTP_ACCEPT=</p><p>HTTP_USER_AGENT=</p>
+[91m
+++++ END ++++ [0m

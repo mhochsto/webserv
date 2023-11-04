@@ -144,10 +144,10 @@ std::string Response::createEmergencyPage(std::string errorCode){
 void Response::createErrorResponse(const std::string& errorCode){
 	
 	std::string errorPagePath = "." + m_client.config.root + m_client.config.errorPages[errorCode.substr(0, 3)];
-	if (access(errorPagePath.c_str(), R_OK) == 0){
+	try {
 		createResponse(errorCode, createStringFromFile(errorPagePath));
 	}
-	else {
+	catch(std::exception &e) {
 		createResponse(errorCode, createEmergencyPage(errorCode));
 	}
 }
@@ -156,7 +156,7 @@ std::string Response::createStringFromFile(std::string fileName){
 	std::fstream file;
 	file.open(fileName.c_str());
 	if (!file){
-		return LAST_RESORT_404;
+		throw std::runtime_error("open");
 	}
 	std::stringstream sstream;
 	sstream << file.rdbuf();
@@ -169,7 +169,13 @@ void Response::getResponse( Request *request ){
 		createResponse("200 OK\n", showDir(request->getPath()));
 		return ;
 	}
-	createResponse("200 OK\n", createStringFromFile(request->getPath()));
+	try {
+		createResponse("200 OK\n", createStringFromFile(request->getPath()));
+	}
+	catch(std::exception& e) {
+		createResponse("404 File not Found\n", createEmergencyPage("404 File not Found\n"));
+	}
+	
 }
 
 std::string Response::postExtension( void ){

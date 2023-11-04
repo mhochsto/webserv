@@ -35,6 +35,14 @@ def getPort():
 def randomName(size):
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(size))
 
+def printHeader(data):
+    split_lines = data.splitlines()
+    for line in split_lines:
+        if not line:
+            break
+        print(line)
+
+
 def testsFromTestFile():
     print(MAGENTA + "Starting with Testcases from .testfile ....\n",RESET)
     with open(TESTFILE, 'r') as file:
@@ -47,7 +55,7 @@ def testsFromTestFile():
             print("Bash Command:", command)
             print("\n++++ Return ++++", RESET)
             result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print(result.stdout)
+            printHeader(result.stdout)
             print(RED + "++++ END ++++", RESET)
 
 def testChunkedRequests():
@@ -60,7 +68,7 @@ def testChunkedRequests():
     sendChunks(sock, "chunk 1", "chunk 2")
     data = sock.recv(4096)
     print(RED,"\n++++ Return ++++", RESET)
-    print(data.decode('utf-8'), end='') 
+    printHeader(data.decode('utf-8')) 
     print(RED + "\n++++ END ++++", RESET)
     print(RED + "\nPOST into Post-bin with random Filename")
     sock.send(b"POST /post-bin/"+ randomName(5).encode('utf-8') + b" HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
@@ -68,9 +76,25 @@ def testChunkedRequests():
     sendChunks(sock, "chunk 1", "chunk 2")
     data = sock.recv(4096)
     print("\n++++ Return ++++", RESET)
-    print(data.decode('utf-8'), end='') 
+    printHeader(data.decode('utf-8')) 
     print(RED + "++++ END ++++", RESET)
-    print(RED + "\nPOST into Post-bin with random Filename")
+    print(RED + "\nPOST send two chunks at once")
+    sock.send(b"POST /post-bin/"+ randomName(5).encode('utf-8') + b" HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
+    chunk1 = hex(len("chunk1"))[2:].encode('utf-8') + b"\r\n" + "chunk1".encode('utf-8') + b"\r\n"
+    chunk2 = hex(len("chunk2"))[2:].encode('utf-8') + b"\r\n" + "chunk2".encode('utf-8') + b"\r\n" 
+    chunk3 = hex(len("chunk3"))[2:].encode('utf-8') + b"\r\n" + "chunk3".encode('utf-8') + b"\r\n" 
+    chunk4 = b"0\r\n\r\n"
+    time.sleep(0.1)
+    sock.send(chunk1)
+    time.sleep(0.1)
+    sock.send(chunk2 + chunk3)
+    time.sleep(0.1)
+    sock.send(chunk4)
+    time.sleep(0.1)
+    data = sock.recv(4096)
+    print("\n++++ Return ++++", RESET)
+    printHeader(data.decode('utf-8')) 
+    print(RED + "++++ END ++++", RESET)
     sock.close()
 
 def testCGI():
@@ -82,23 +106,23 @@ def testCGI():
     data = sock.recv(4096)
     print(RED + "\nCGI: Endless loop")
     print("\n++++ Return ++++", RESET)
-    print(data.decode('utf-8'), end='') 
+    printHeader(data.decode('utf-8')) 
     print(RED + "\n++++ END ++++", RESET)
 
     sock.send(b"POST " + CGI_TEST_SCRIPT.encode('utf-8') + b" HTTP/1.1\r\n\r\n")
     data = sock.recv(4096)
     print(RED + "\nCGI: Test script")
     print("\n++++ Return ++++", RESET)
-    print(data.decode('utf-8'), end='') 
+    printHeader(data.decode('utf-8')) 
     print(RED + "\n++++ END ++++", RESET)
 
     sock.send(b"POST " + CGI_PRINT_ENVIRON.encode('utf-8') + b" HTTP/1.1\r\n\r\n")
     data = sock.recv(4096)
-    print(RED + "\nE CGI: Print Enviroment")
+    print(RED + "\nCGI: Print Enviroment")
     print("\n++++ Return ++++", RESET)
-    print(data.decode('utf-8'), end='') 
+    print(data.decode('utf-8')) 
     print(RED + "\n++++ END ++++", RESET)
 
 testsFromTestFile()
-#testChunkedRequests()
-#testCGI()
+testChunkedRequests()
+testCGI()
