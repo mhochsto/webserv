@@ -21,10 +21,10 @@
 # include <ctime>
 # include "Config.hpp"
 
-# define CLIENT_MAX 200
+# define CLIENT_MAX 10000
 
 /* Note that REQUEST_TIMEOUT should be >CGI_TIMOUT */
-# define REQUEST_TIMEOUT 3 //s
+# define REQUEST_TIMEOUT 2 //s
 # define CGI_TIMEOUT 1 // s
 class Config;
 
@@ -55,6 +55,7 @@ class Server {
 		void 		handleClient(pollfd& client);
 		bool		isClientSocket(pollfd& pollfd){ return pollfd.revents != 0 && m_clients.find(pollfd.fd) != m_clients.end();}
 		void		removeCgiSockets(t_client *cgiClient);
+		static void		sigIntHandler(int signal );
 };
 
 #endif

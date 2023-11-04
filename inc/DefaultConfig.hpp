@@ -15,6 +15,7 @@
 # define SERVER_ERROR_PAGE_405 "/pages/405.html"
 # define SERVER_ERROR_PAGE_408 "/pages/408.html"
 # define SERVER_ERROR_PAGE_500 "/pages/500.html"
+# define SERVER_ERROR_PAGE_501 "/pages/501.html"
 # define SERVER_ERROR_PAGE_502 "/pages/502.html"
 # define SERVER_ERROR_PAGE_503 "/pages/503.html"
 # define SERVER_ERROR_PAGE_505 "/pages/505.html"

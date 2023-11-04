@@ -39,6 +39,7 @@ typedef struct s_config {
 		clientMaxBodySize = SERVER_CLIENT_MAX_BODY_SIZE;
 		root = SERVER_ROOT;
 		serverName = SERVER_LOCALHOST;
+		serverIP = SERVER_LOCALHOST;
 		errorPages["400"] = SERVER_ERROR_PAGE_400;
 		errorPages["403"] = SERVER_ERROR_PAGE_403;
 		errorPages["404"] = SERVER_ERROR_PAGE_404;
@@ -47,6 +48,7 @@ typedef struct s_config {
 		errorPages["409"] = SERVER_ERROR_PAGE_409;
 		errorPages["413"] = SERVER_ERROR_PAGE_413;
 		errorPages["500"] = SERVER_ERROR_PAGE_500;
+		errorPages["501"] = SERVER_ERROR_PAGE_501;
 		errorPages["502"] = SERVER_ERROR_PAGE_502;
 		errorPages["503"] = SERVER_ERROR_PAGE_503;
 		errorPages["505"] = SERVER_ERROR_PAGE_505;

@@ -1,0 +1,87 @@
+/* styles.css */
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background-color: #682716;
+}
+
+header {
+    background-color: #d8cc8b; /* Gold */
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+    font-size: 32px;
+}
+
+.highlight {
+    color: #FF6B6B; /* Red */
+}
+
+nav ul {
+    list-style: none;
+}
+
+nav li {
+    display: inline;
+    margin: 0 10px;
+}
+
+nav a {
+    color: #333;
+    text-decoration: none;
+}
+
+main {
+    margin: 20px;
+}
+
+.about-section {
+    background-color: #eb6967; /* Pink */
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.dogs-section {
+    background-color: #A5A58D; /* Light Green */
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    display: flex;
+    justify-content: space-around;
+}
+
+.dog-card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+}
+
+h2 {
+    color: #333;
+    font-size: 24px;
+}
+
+h3 {
+    color: #FF6B6B; /* Red */
+}
+
+p {
+    color: #000000;
+}
+
+footer {
+    text-align: center;
+    background-color: #d8cc8b; /* Gold */
+    color: #333;
+    padding: 10px;
+}

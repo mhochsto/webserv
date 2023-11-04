@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
 void Server::CreateServerSocket( t_config& server ){
 	pollfd	serverSocket;
 	struct addrinfo hints;
@@ -28,9 +29,10 @@ void Server::CreateServerSocket( t_config& server ){
 	
 	std::stringstream port;
 	port << server.port;
+
 	int s = getaddrinfo(server.serverIP.c_str(), port.str().c_str(), &hints, &results);
 	if (s){
-		std::cerr << gai_strerror(s) << std::endl;
+		throw std::runtime_error(gai_strerror(s));
 	}
 	serverSocket.events = POLLIN | POLLOUT;
 	serverSocket.fd = socket(results->ai_family, results->ai_socktype | SOCK_NONBLOCK, results->ai_protocol);
@@ -113,8 +115,11 @@ t_client* Server::findClient(int pipeFd){
 void Server::handleClient(pollfd& client){
 	if (m_clients[client.fd].lastAction + REQUEST_TIMEOUT < time(NULL) && !m_clients[client.fd].header.empty()){
 		t_client *currentClient = &m_clients[client.fd];
-		currentClient->header.append("\r\n\r\nBad Request");
+		if (currentClient->activeCGI){
+			removeCgiSockets(currentClient);
+		}
 		currentClient->request = new Request(*currentClient, m_sockets);
+		currentClient->request->setInvalidRequest("408 Request Timeout\n");
 		sendResponse(m_clients[client.fd]);
 		return ;
 	}
@@ -175,10 +180,16 @@ void Server::handleCgiSockets(pollfd& pollfd){
 	pollfd.revents = 0;
 }
 
+
+void		Server::sigIntHandler(int signal ){ (void)signal; exit(0); }
+
+
 void Server::run( void ){
 	if (m_sockets.size() == 0){
 		throw std::runtime_error("Server::No open Server Sockets");
 	}
+	signal(SIGINT, &Server::sigIntHandler);
+	
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
 			throw std::runtime_error(SYS_ERROR("poll"));
@@ -397,6 +408,7 @@ void Server::recieveRequest( t_client& client ){
 			}
 			if ((long)client.body.size() == client.exptectedBodySize){
 				client.recieving = done;
+				break ;
 			}
 			return ;
 		case chunk:
@@ -418,6 +430,9 @@ void Server::recieveRequest( t_client& client ){
 Server::~Server() {
 	for (std::map<int, t_client>::iterator it = m_clients.begin(); it != m_clients.end(); ++it){
 		if (it->second.cgi){
+			if (it->second.activeCGI){
+				kill(it->second.CgiPid, SIGKILL);
+			}
 			delete it->second.cgi;
 			it->second.cgi = NULL;
 		}

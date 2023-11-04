@@ -7,7 +7,7 @@
 # include <unistd.h> // fork () && execve()
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <signal.h>
 # include <numeric>
 
 class Response;

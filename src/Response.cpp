@@ -165,7 +165,7 @@ std::string Response::createStringFromFile(std::string fileName){
 }
 
 void Response::getResponse( Request *request ){
-	if (request->getShowDir()){
+	if (request->getShowDir()) {
 		createResponse("200 OK\n", showDir(request->getPath()));
 		return ;
 	}
@@ -175,7 +175,6 @@ void Response::getResponse( Request *request ){
 	catch(std::exception& e) {
 		createResponse("404 File not Found\n", createEmergencyPage("404 File not Found\n"));
 	}
-	
 }
 
 std::string Response::postExtension( void ){
@@ -211,8 +210,8 @@ void Response::postResponse( Request *request ){
 }
 
 void Response::deleteResponse( Request *request ){
-	if (access(request->getPath().c_str(), F_OK)){
-		if (access(request->getPath().c_str(), W_OK)){
+	if (access(request->getPath().c_str(), F_OK) == 0){
+		if (access(request->getPath().c_str(), W_OK) == 0){
 			if (remove(std::string(request->getPath()).c_str())  == 0){
 				createResponse("204 No Content\n", "");
 			}

@@ -2,7 +2,10 @@
 
 Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false), m_isRedirect(false) {
 
-	if (parseHeader()){
+	if (parseHeader() || !m_invalidRequest.empty()){
+		return ;
+	}
+	if (!checkHostname()){
 		return ;
 	}
 	m_requestBody = client.body;
@@ -22,6 +25,20 @@ Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(clien
 }
 
 Request::~Request(){}
+
+bool Request::checkHostname( void ){
+	std::string requestedHostname = m_requestData["Host"];
+	if (requestedHostname.find(":") == std::string::npos){
+		m_invalidRequest = "400 Bad Request\n";
+		return false;
+	}
+	requestedHostname = requestedHostname.substr(0, requestedHostname.find(":"));
+	if (requestedHostname == "localhost" || m_client.config.serverName == requestedHostname){
+		return true;
+	}
+	m_invalidRequest = "400 Bad Request\n";
+	return false;
+}
 
 void Request::checkBodyLength(void){
 	long checkSize = m_client.location.clientMaxBodySize == UNSET ? m_client.config.clientMaxBodySize : m_client.location.clientMaxBodySize;
@@ -165,6 +182,13 @@ void Request::validateRequestType(const t_location& location){
 		}
 	}
 	m_invalidRequest = "405 Method Not Allowed\n";
+	const char *allowedRequests[] = ALLOWED_REQUESTS;
+	for (int i = 0; allowedRequests[i]; ++i){
+			if (m_requestType == allowedRequests[i]){
+				return ;
+			}
+	}
+	m_invalidRequest = "501 - Method Not Implemented\n";
 }
 
 int Request::validateAndSetRequestLine( const std::string& line ) {

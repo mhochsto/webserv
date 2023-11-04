@@ -1,7 +1,7 @@
 
 # Webserv should run before the execution of this script
 # Set DOMAIN - keep format ( Domain:Port ) 
-DOMAIN = "localhost:7700"
+DOMAIN = "127.0.0.1:7700"
 # There should be a /post-bin in your Root Directory to test POST Requests
 # Provide Paths for CGI Testing:
 CGI_TEST_SCRIPT = "/cgi-bin/test.cgi"
@@ -14,6 +14,7 @@ import socket
 import time
 import string
 import random
+import threading
 
 TESTFILE = ".testcases"
 
@@ -40,45 +41,45 @@ def printHeader(data):
     for line in split_lines:
         if not line:
             break
-        print(line)
+        #print(line)
 
 
 def testsFromTestFile():
-    print(MAGENTA + "Starting with Testcases from .testfile ....\n",RESET)
+    #print(MAGENTA + "Starting with Testcases from .testfile ....\n",RESET)
     with open(TESTFILE, 'r') as file:
         lines = file.readlines()
         for i in range(0, len(lines), 2):
             description = lines[i].strip()
             command = lines[i + 1].strip()
             command = command.replace("Domain", DOMAIN)
-            print(RED + "\nTest:", description)
-            print("Bash Command:", command)
-            print("\n++++ Return ++++", RESET)
+            #print(RED + "\nTest:", description)
+            #print("Bash Command:", command)
+            #print("\n++++ Return ++++", RESET)
             result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            printHeader(result.stdout)
-            print(RED + "++++ END ++++", RESET)
+            #printHeader(result.stdout)
+            #print(RED + "++++ END ++++", RESET)
 
 def testChunkedRequests():
-    print(MAGENTA + "\nTesting Chunked Request ..."+ RESET)
-    print(RED, "\n" "GET\n", RESET)
+    #print(MAGENTA + "\nTesting Chunked Request ..."+ RESET)
+    #print(RED, "\n" "GET\n", RESET)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(('localhost', getPort()))
     sock.send(b"GET / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
     time.sleep(0.1)
     sendChunks(sock, "chunk 1", "chunk 2")
     data = sock.recv(4096)
-    print(RED,"\n++++ Return ++++", RESET)
-    printHeader(data.decode('utf-8')) 
-    print(RED + "\n++++ END ++++", RESET)
-    print(RED + "\nPOST into Post-bin with random Filename")
+    #print(RED,"\n++++ Return ++++", RESET)
+    #printHeader(data.decode('utf-8')) 
+    #print(RED + "\n++++ END ++++", RESET)
+    #print(RED + "\nPOST into Post-bin with random Filename")
     sock.send(b"POST /post-bin/"+ randomName(5).encode('utf-8') + b" HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
     time.sleep(0.1)
     sendChunks(sock, "chunk 1", "chunk 2")
     data = sock.recv(4096)
-    print("\n++++ Return ++++", RESET)
-    printHeader(data.decode('utf-8')) 
-    print(RED + "++++ END ++++", RESET)
-    print(RED + "\nPOST send two chunks at once")
+    #print("\n++++ Return ++++", RESET)
+    #printHeader(data.decode('utf-8')) 
+    #print(RED + "++++ END ++++", RESET)
+    #print(RED + "\nPOST send two chunks at once")
     sock.send(b"POST /post-bin/"+ randomName(5).encode('utf-8') + b" HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
     chunk1 = hex(len("chunk1"))[2:].encode('utf-8') + b"\r\n" + "chunk1".encode('utf-8') + b"\r\n"
     chunk2 = hex(len("chunk2"))[2:].encode('utf-8') + b"\r\n" + "chunk2".encode('utf-8') + b"\r\n" 
@@ -92,37 +93,52 @@ def testChunkedRequests():
     sock.send(chunk4)
     time.sleep(0.1)
     data = sock.recv(4096)
-    print("\n++++ Return ++++", RESET)
-    printHeader(data.decode('utf-8')) 
-    print(RED + "++++ END ++++", RESET)
+    #print("\n++++ Return ++++", RESET)
+    #printHeader(data.decode('utf-8')) 
+    #print(RED + "++++ END ++++", RESET)
     sock.close()
 
 def testCGI():
-    print(MAGENTA + "\nTesting CGI ..."+ RESET)
+    #print(MAGENTA + "\nTesting CGI ..."+ RESET)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(('localhost', getPort()))
     
     sock.send(b"POST " + CGI_ENDLESS_LOOP.encode('utf-8') + b" HTTP/1.1\r\n\r\n")
     data = sock.recv(4096)
-    print(RED + "\nCGI: Endless loop")
-    print("\n++++ Return ++++", RESET)
-    printHeader(data.decode('utf-8')) 
-    print(RED + "\n++++ END ++++", RESET)
+    #print(RED + "\nCGI: Endless loop")
+    #print("\n++++ Return ++++", RESET)
+    #printHeader(data.decode('utf-8')) 
+    #print(RED + "\n++++ END ++++", RESET)
 
     sock.send(b"POST " + CGI_TEST_SCRIPT.encode('utf-8') + b" HTTP/1.1\r\n\r\n")
     data = sock.recv(4096)
-    print(RED + "\nCGI: Test script")
-    print("\n++++ Return ++++", RESET)
-    printHeader(data.decode('utf-8')) 
-    print(RED + "\n++++ END ++++", RESET)
+    #print(RED + "\nCGI: Test script")
+    #print("\n++++ Return ++++", RESET)
+    #printHeader(data.decode('utf-8')) 
+    #print(RED + "\n++++ END ++++", RESET)
 
     sock.send(b"POST " + CGI_PRINT_ENVIRON.encode('utf-8') + b" HTTP/1.1\r\n\r\n")
     data = sock.recv(4096)
-    print(RED + "\nCGI: Print Enviroment")
-    print("\n++++ Return ++++", RESET)
-    print(data.decode('utf-8')) 
-    print(RED + "\n++++ END ++++", RESET)
+    #print(RED + "\nCGI: #Print Enviroment")
+    #print("\n++++ Return ++++", RESET)
+    #print(data.decode('utf-8')) 
+    #print(RED + "\n++++ END ++++", RESET)
+    sock.close()
 
-testsFromTestFile()
-testChunkedRequests()
-testCGI()
+def runAllTests():
+    testsFromTestFile()
+    testChunkedRequests()
+    testCGI()
+
+
+
+runAllTests()
+#runAllTests()
+for i in range(1,1000):
+    thread = threading.Thread(target=runAllTests)
+    time.sleep(0.1)
+    thread.start()
+
+for thread in threading.enumerate():
+    if thread != threading.current_thread():
+        thread.join()

@@ -89,6 +89,7 @@ void CgiHandler::execute( void ) {
 		throw std::runtime_error(SYS_ERROR("fork"));
 	}
 	if (m_client.CgiPid == 0) {
+		signal(SIGINT, SIG_DFL);
 		if (dup2(m_in[READ], STDIN_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(m_out[WRITE], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		close(m_in[READ]);

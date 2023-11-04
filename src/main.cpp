@@ -6,7 +6,7 @@
 int main(int argc, char **argv) {
     Config config("webserv.config");
     Server webserv(config.getServerConfig());
-        webserv.run();
+    webserv.run();
     try {
     }
     catch (std::exception &e){
