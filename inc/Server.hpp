@@ -57,6 +57,7 @@ class Server {
 		bool		isClientSocket(pollfd& pollfd){ return pollfd.revents != 0 && m_clients.find(pollfd.fd) != m_clients.end();}
 		void		removeCgiSockets(t_client *cgiClient);
 		static void		sigIntHandler(int signal );
+		void		handleDuplicates( void );
 };
 
 #endif

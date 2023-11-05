@@ -62,17 +62,45 @@ void Server::CreateServerSocket( t_config& server ){
 	server.fd = serverSocket.fd;
 }
 
-Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
+void Server::handleDuplicates( void ) {
+
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
-		print(Notification, "starting Server: " + it->serverName);
+		int refPort = it->port;
+		std::string refIP = it->serverIP;
+		for (std::vector<t_config>::iterator iter = m_serverConfig.begin(); iter != m_serverConfig.end(); ++iter){
+			if (iter->port == refPort && refIP == iter->serverIP && it->id != iter->id){
+				if (it->id < iter->id){
+					iter->def = false;
+				}
+				it->sharedConfig.push_back(*iter);
+			}	
+		}
+	}
+}
+
+Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
+
+	handleDuplicates();
+
+
+	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
+		print(Notification, "starting Server: ");
+		for (size_t i = 0; i < it->serverName.size(); ++i){
+			print(Notification, it->serverName.at(i) + " ");
+		}
 		try{
-			CreateServerSocket(*it);
+			if (it->def){
+				CreateServerSocket(*it);
+			}
 		}
 		catch(const std::exception& e){
 			std::cerr << e.what() << '\n';
 			continue ;
 		}
-		print(Notification, "Server started Successfully: " + it->serverName + "\n");
+		print(Notification, "Server started Successfully: ");
+		for (size_t i = 0; i < it->serverName.size(); ++i){
+			print(Notification, it->serverName.at(i) + " ");
+		}
 	}
 }
 
@@ -194,7 +222,7 @@ void Server::run( void ){
 
 	signal(SIGINT, &Server::sigIntHandler);
 	
-	while (true){
+	while (m_stop){
 		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
 			if (!m_stop) {
 				std::cout << "Stopping Webserv ... ";

@@ -127,5 +127,6 @@ void Config::addServerConfig(std::string& in) {
 			throw configException(e.what());
 		}
 	}
+	serverConfig.id = m_serverConfig.size();
 	m_serverConfig.push_back(serverConfig);
 }

@@ -140,9 +140,15 @@ class Config{
 
 	template <typename T>
 	static void 	addServerName(std::string line, T& set ){
-		set.serverName = getFirstWord(line);
-		if (!line.empty()){
-			throw configException("invalid ServerName: [" + line + "]");
+		set.serverName.clear();
+		std::stringstream sstream(line);
+		std::string word;
+		while ((std::getline(sstream, word, ' '))){
+			set.serverName.push_back(getFirstWord(word));
+			getFirstWord(line);
+		}
+		if (set.serverName.size() == 0){
+			throw configException("no server name provided");
 		}
 	}
 

@@ -74,6 +74,7 @@ class Request {
 		void		checkBodyLength(void);
 		void		validateExtension(std::string& extension, t_location& location);
 		bool		checkHostname( void );
+		bool		verifyHostnameAndResetConfig(const std::string& requestedHostname);
 };
 
 std::ostream    &operator<<(std::ostream &os, const Request &rhs);

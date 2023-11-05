@@ -35,10 +35,11 @@ typedef std::map<std::string, std::string> stringMap;
 typedef struct s_config {
 	/* alles mit initialiser list ?*/
     s_config() : fd(UNSET) {
+		def = true;
 		port = SERVER_LISTEN;
 		clientMaxBodySize = SERVER_CLIENT_MAX_BODY_SIZE;
 		root = SERVER_ROOT;
-		serverName = SERVER_LOCALHOST;
+		serverName.push_back(SERVER_LOCALHOST);
 		serverIP = SERVER_LOCALHOST;
 		errorPages["400"] = SERVER_ERROR_PAGE_400;
 		errorPages["403"] = SERVER_ERROR_PAGE_403;
@@ -53,17 +54,20 @@ typedef struct s_config {
 		errorPages["503"] = SERVER_ERROR_PAGE_503;
 		errorPages["505"] = SERVER_ERROR_PAGE_505;
 		locations["/"];
-    }
+	}
+	int									id;
     int                                 fd;
+	bool								def;
 	ssize_t								port;
 	ssize_t								clientMaxBodySize;
 	std::string							root;
 	std::string							index;
-	std::string							serverName;
+	std::vector<std::string>			serverName;
 	std::string							serverIP;
     stringMap							redirects;
     stringMap							errorPages;
     locationMap							locations;
+	std::vector<struct s_config>				sharedConfig;
 } t_config;
 
 
