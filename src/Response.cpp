@@ -107,6 +107,9 @@ std::string Response::FileType( void ) {
 	else if (extension == "html"){
 			return "text/html";
 	}
+	else if (extension == "plain"){
+		return "";
+	}
 	return "text/html";
 }
 
@@ -179,11 +182,16 @@ void Response::getResponse( Request *request ){
 
 std::string Response::postExtension( void ){
 	std::string contentType = m_client.request->get("Content-Type");
+	m_fileType = contentType;
 	if (contentType.empty()){
 		return "";
 	}
 	if (contentType.find("/") != std::string::npos && contentType.find("/") + 2 < contentType.size()){
-		return "." + contentType.substr(contentType.find("/") + 1);
+		std::string Type = contentType.substr(contentType.find("/") + 1);
+		if (Type == "plain\r"){
+			return "";
+		}
+		return "." + Type;
 	}
 	return "";
 }
@@ -206,7 +214,7 @@ void Response::postResponse( Request *request ){
 	}
 	newFile << request->getBody();
 	newFile.close();
-	createResponse("201 Created\nLocation: " + request->getPath() + postExtension(), "Data saved successfully\n");
+	createResponse("201 Created\nLocation: " + request->getPath().substr(m_client.config.root.length() + 1) + postExtension(), "Data saved successfully\n");
 }
 
 void Response::deleteResponse( Request *request ){

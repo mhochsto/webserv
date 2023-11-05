@@ -180,18 +180,26 @@ void Server::handleCgiSockets(pollfd& pollfd){
 	pollfd.revents = 0;
 }
 
+bool Server::m_stop = true;
 
-void		Server::sigIntHandler(int signal ){ (void)signal; exit(0); }
-
+void		Server::sigIntHandler(int signal ){
+	(void)signal;
+	m_stop = false;
+}
 
 void Server::run( void ){
 	if (m_sockets.size() == 0){
 		throw std::runtime_error("Server::No open Server Sockets");
 	}
+
 	signal(SIGINT, &Server::sigIntHandler);
 	
 	while (true){
 		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
+			if (!m_stop) {
+				std::cout << "Stopping Webserv ... ";
+				break ;
+			}
 			throw std::runtime_error(SYS_ERROR("poll"));
 		}
 		for (unsigned long i = 0; i < m_sockets.size(); ++i){

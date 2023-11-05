@@ -41,6 +41,7 @@ class Server {
 		std::vector<pollfd> 	m_sockets;
 		std::vector<t_config>	m_serverConfig;
 		std::map<int, t_client> m_clients;
+		static bool				m_stop;
 
 		t_config&	setConfig( int serverFD );
 		void 		addConnection( int serverFD );
