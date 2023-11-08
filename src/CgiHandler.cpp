@@ -64,7 +64,7 @@ std::string CgiHandler::findExecutablePath( std::string path ){
 	else if (m_extension == "py"){
 		return "/usr/bin/python3";
 	}
-	return path;
+	return "";
 }
 
 void CgiHandler::prepSockets(void){
@@ -82,13 +82,27 @@ void CgiHandler::prepSockets(void){
 
 void CgiHandler::execute( void ) {
 	std::string executablePath = findExecutablePath(m_client.request->getPath());
-	char *argv[] = {(char *)executablePath.c_str(), (char *)(m_client.request->getClient().location.cgiScript.empty() ? m_client.request->getPath().c_str() : NULL) , NULL};
+	std::string executable = "." + m_client.request->getPath().substr(m_client.request->getPath().find_last_of('/'));
+	std::string dirPath = m_client.request->getPath().substr(0, m_client.request->getPath().find_last_of('/'));
+	
+	char *argv[3];
+		argv[2] = NULL;
+	if (executablePath.empty()){
+		argv[0] = (char *)executable.c_str();
+		argv[1] = NULL;
+	}
+	else {
+		argv[0] = (char *)executablePath.c_str();
+		argv[1] = (char *)executable.c_str();
+	}
+	
 	prepSockets();
 	m_client.CgiPid = fork();
 	if (m_client.CgiPid ==  -1) {
 		throw std::runtime_error(SYS_ERROR("fork"));
 	}
 	if (m_client.CgiPid == 0) {
+		chdir(dirPath.c_str());
 		signal(SIGINT, SIG_DFL);
 		if (dup2(m_in[READ], STDIN_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
 		if (dup2(m_out[WRITE], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));

@@ -35,7 +35,6 @@ bool Request::verifyHostnameAndResetConfig(std::string requestedHostname){
 		}
 		for (std::vector<std::string>::iterator iter = it->serverName.begin(); iter != it->serverName.end(); ++iter){
 			if (*iter == requestedHostname){
-				std::cout <<"REACHED: " << requestedHostname << std::endl;
 				m_client.config = *it;
 				return true;
 			}
@@ -56,7 +55,6 @@ bool Request::checkHostname( void ){
 	}
 	requestedHostname = requestedHostname.find(":") == std::string::npos ? requestedHostname : requestedHostname.substr(0, requestedHostname.find(":"));
 	verifyHostnameAndResetConfig(requestedHostname);
-	std::cout <<"NAME: "<< m_client.config.serverName.at(0) << std::endl;
 	return true;
 }
 
