@@ -1,6 +1,7 @@
 #ifndef DEFAULTCONFIG_HPP
 # define DEFAULTCONFIG_HPP
 
+# define DEFAULT_CONFIG_FILE "webserv.config"
 # define SERVER_LISTEN 8800
 # define SERVER_LOCALHOST "localhost"
 # define SERVER_CLIENT_MAX_BODY_SIZE 10000

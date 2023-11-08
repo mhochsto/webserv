@@ -51,7 +51,7 @@ class Config{
 	static void addIndex(std::string line, T& set){
 		set.index = getFirstWord(line);
 		if (!line.empty()){
-			throw configException("invalid index in: [" + line + "]");
+			throw configException("Server::invalid index in: [" + line + "]");
 		}
 	}
 
@@ -60,7 +60,7 @@ class Config{
 		const char *allowedRequest[] = ALLOWED_REQUESTS;
 		set.allowedMethods = convertStringtoVector(line, WHITESPACE);
 		if (set.allowedMethods.size() == 0){
-			throw configException("no methods listed: " + line);
+			throw configException("Server::no methods listed: " + line);
 		}
 		for(std::vector<std::string>::iterator it = set.allowedMethods.begin(); it != set.allowedMethods.end(); ++it ) {
 			bool valid = false;
@@ -71,7 +71,7 @@ class Config{
 				}
 			}
 			if (valid == false){
-				throw configException("invalid Method: [" + *it + "]");
+				throw configException("Server::invalid Method: [" + *it + "]");
 			}
 			valid = false;
 		}
@@ -82,7 +82,7 @@ class Config{
 		set.proxyPass = line;
 		removeFirstWord(line);
 		if (!line.empty()){
-			throw configException("invalid proxy_pass: [" + line + "]");
+			throw configException("Server::invalid proxy_pass: [" + line + "]");
 		}
 		formatPath(set.proxyPass);
 	}
@@ -90,11 +90,11 @@ class Config{
 	static void addAllowedCgiExtension(std::string line, T& set ){
 		set.allowedCgiExtensions = convertStringtoVector(line, WHITESPACE);
 		if (set.allowedCgiExtensions.size() == 0){
-			throw configException("no extensions listed: " + line);
+			throw configException("Server::no extensions listed: " + line);
 		}
 		for (unsigned long i = 0; i < set.allowedCgiExtensions.size(); ++i){
 			if (set.allowedCgiExtensions.at(i).at(0) != '.'){
-				throw configException("invalid cgi extension (needs to start with '.'): " + set.allowedCgiExtensions.at(i));
+				throw configException("Server::invalid cgi extension (needs to start with '.'): " + set.allowedCgiExtensions.at(i));
 			}
 		}
 	}
@@ -108,7 +108,7 @@ class Config{
 			set.autoIndex = true;
 		}
 		else {
-			throw configException("invalid Autoindex: " + line);
+			throw configException("Server::invalid Autoindex: " + line);
 		}
 	}
 
@@ -117,7 +117,7 @@ class Config{
 		char *endptr;
 		double dValue = std::strtod(line.c_str(), &endptr);
 		if (*endptr || dValue < 0 || dValue > std::numeric_limits<int>::max()){
-			throw configException("invalid client_max_body_size in: [" + line + "]");
+			throw configException("Server::invalid client_max_body_size in: [" + line + "]");
 		}
 		set.clientMaxBodySize = dValue;
 	}
@@ -126,14 +126,14 @@ class Config{
 	static void 	addListen(std::string line, T& set ){
 		std::string port = getFirstWord(line);
 		if (!line.empty() || port.find(':') == std::string::npos){
-			throw configException("invalid listen: " + port + line);
+			throw configException("Server::invalid listen: " + port + line);
 		}
 		set.serverIP = port.substr(0, port.find(':'));
 		port.erase(0, port.find(':') + 1);
 		char *endptr;
 		double dValue = std::strtod(port.c_str(), &endptr);
 		if (*endptr || dValue < PORT_MIN || dValue > PORT_MAX ){
-			throw configException("invalid port: [" + port + "]");
+			throw configException("Server::invalid port: [" + port + "]");
 		}
 		set.port = dValue;
 	}
@@ -148,7 +148,7 @@ class Config{
 			getFirstWord(line);
 		}
 		if (set.serverName.size() == 0){
-			throw configException("no server name provided");
+			throw configException("Server::no server name provided");
 		}
 	}
 
@@ -164,7 +164,7 @@ class Config{
 		formatPath(set.cgiScript);
 		set.cgiScript.insert(0, ".");
 		if (!line.empty()){
-			throw configException("invalid CgiName: [" + line + "]");
+			throw configException("Server::invalid CgiName: [" + line + "]");
 
 		}
 	}
@@ -175,7 +175,7 @@ class Config{
 		std::string key = getFirstWord(line);
 		std::string value = getFirstWord(line);
 		if (!line.empty() || key.empty() || value.empty()){
-			throw configException("invalid errorPage: [" + line + "]");
+			throw configException("Server::invalid errorPage: [" + line + "]");
 		}
 
 		if (set.redirects[key].size() != 0){
@@ -192,7 +192,7 @@ class Config{
 		std::string key = getFirstWord(line);
 		std::string value = getFirstWord(line);
 		if (!line.empty() || key.empty() || value.empty()){
-			throw configException("invalid errorPage: [" + line + "]");
+			throw configException("Server::invalid errorPage: [" + line + "]");
 		}
 
 		if (set.errorPages[key].size() != 0){

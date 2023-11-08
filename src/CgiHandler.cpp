@@ -96,7 +96,7 @@ void CgiHandler::execute( void ) {
 		close(m_out[WRITE]);
 		closePollfds(m_client.request->getPollfds());
 		if (execve(argv[0], argv , m_envCharPtr.data()) == -1){
-			perror("execve");
+			exit(1);
 		}
 	}
 	close(m_in[READ]);

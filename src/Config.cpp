@@ -31,7 +31,12 @@ Config::Config(std::string configFileName ){
 			addServerConfig(input);
 		}
 		catch(std::exception& e) {
-			std::cerr << e.what() << std::endl;
+			if (std::string(e.what()) == "Server::Config Error: Open brackets in file" && input.find("server") != std::string::npos){
+				input.erase(input.find("server"), std::strlen("server"));
+			}
+			if ( std::string(e.what()).find("Server::") != std::string::npos){
+				std::cerr << e.what() << std::endl;
+			}
 		};
 	}
 }
@@ -54,7 +59,9 @@ std::string Config::getBlock( std::string type, std::string& in ){
 			}
 		}
 	}
-	if (i == in.length() && !brackets.empty()) throw std::runtime_error(CONFIG_ERROR("Open brackets in file"));
+	if (i == in.length() && !brackets.empty()){
+		throw std::runtime_error(CONFIG_ERROR("Open brackets in file"));
+	}
 	std::string currentScope = in.substr(in.find(type), i + 1 - in.find(type)); // + 1 to get '}'
 	in.erase(in.find(type), i + 1 - in.find(type));
 	return (currentScope);
@@ -70,7 +77,7 @@ void Config::addLocation(std::string newLocation, t_config& serverConfig) {
 	std::string locationPath = getFirstWord(newLocation);
 	formatPath(locationPath);
 	if (newLocation.substr(0, 2) != "{\n"){
-		throw configException("invalid input at location block (" + locationPath + "): " + newLocation);
+		throw configException("Server::invalid input at location block (" + locationPath + "): " + newLocation);
 	}
 	newLocation.erase(0, 2);
 
@@ -81,14 +88,14 @@ void Config::addLocation(std::string newLocation, t_config& serverConfig) {
 			 continue ;
 		}
 		if (line.at(line.length() - 1) != ';') {
-			throw configException("missing ';' in("+ locationPath + "): " + line);
+			throw configException("Server::missing ';' in("+ locationPath + "): " + line);
 		}
 		line.resize(line.length() - 1);
 		std::string identifier = getFirstWord(line);
 		try {
 			(*m_locationFunctions.at(identifier))(line, location);
 		} catch (std::exception &e){
-			throw configException(e.what());
+			throw configException(!std::strncmp(e.what(), "map::", 5) ? "Server::Identifier not allowed in Location scope" : e.what());
 		}
 	}
 	location.path = locationPath;
@@ -114,7 +121,7 @@ void Config::addServerConfig(std::string& in) {
 			 continue ;
 		}
 		if (line.at(line.length() - 1) != ';'){
-			throw configException("missing ';' in Server Block" + line);
+			throw configException("Server::missing ';' in Server Block" + line);
 		}
 		line.resize(line.length() - 1);
 		std::string identifier = getFirstWord(line);
@@ -124,7 +131,7 @@ void Config::addServerConfig(std::string& in) {
 		try {
 			(*m_configFunctions.at(identifier))(line, serverConfig);
 		} catch (std::exception &e){
-			throw configException(e.what());
+			throw configException(!std::strncmp(e.what(), "map::", 5) ? "Server::Identifier not allowed in Server scope" : e.what());
 		}
 	}
 	serverConfig.id = m_serverConfig.size();

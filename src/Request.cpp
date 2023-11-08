@@ -24,14 +24,18 @@ Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(clien
 Request::~Request(){}
 
 /* bool for testing */
-bool Request::verifyHostnameAndResetConfig(const std::string& requestedHostname){
+bool Request::verifyHostnameAndResetConfig(std::string requestedHostname){
 	t_config *defaultConfig;
+	if (requestedHostname.find_first_of('.') != requestedHostname.find_last_of('.')){
+		requestedHostname.erase(0, requestedHostname.find_first_of('.') + 1);
+	}
 	for (std::vector<t_config>::iterator it = m_client.config.sharedConfig.begin(); it != m_client.config.sharedConfig.end(); ++it){
 		if (it->def){
 			defaultConfig = &*it;
 		}
 		for (std::vector<std::string>::iterator iter = it->serverName.begin(); iter != it->serverName.end(); ++iter){
 			if (*iter == requestedHostname){
+				std::cout <<"REACHED: " << requestedHostname << std::endl;
 				m_client.config = *it;
 				return true;
 			}
@@ -47,12 +51,12 @@ bool Request::verifyHostnameAndResetConfig(const std::string& requestedHostname)
 bool Request::checkHostname( void ){
 	std::string requestedHostname = m_requestData["Host"];
 	if (requestedHostname.empty()){
-		std::cout << requestedHostname << std::endl;
 		m_invalidRequest = "400 Bad Request\n";
 		return false;
 	}
 	requestedHostname = requestedHostname.find(":") == std::string::npos ? requestedHostname : requestedHostname.substr(0, requestedHostname.find(":"));
 	verifyHostnameAndResetConfig(requestedHostname);
+	std::cout <<"NAME: "<< m_client.config.serverName.at(0) << std::endl;
 	return true;
 }
 
@@ -96,7 +100,10 @@ void Request::checkFilePermissions(void){
 		if (!m_client.location.cgiScript.empty()){
 			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : m_client.location.cgiScript;
 		}
-		if (access(m_requestPath.c_str(), X_OK) == -1) {
+		if (access(m_requestPath.c_str(), F_OK) == -1) {
+			m_invalidRequest = "404 File not Found\n";
+		}
+		else if (access(m_requestPath.c_str(), X_OK) == -1) {
 			m_invalidRequest = "403 Forbidden\n";
 		}
 	} else if (m_requestType == "POST"){
@@ -219,8 +226,6 @@ int Request::validateAndSetRequestLine( const std::string& line ) {
 	}
 	if (vec.size() != 3) {
 		m_invalidRequest = "400 Bad Request\n";
-		std::cout << "2reached\n";
-
 		return 1;
 	}
 	m_requestType = vec.at(0);

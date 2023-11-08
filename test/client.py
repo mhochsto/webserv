@@ -1,7 +1,7 @@
 
 # Webserv should run before the execution of this script
 # Set DOMAIN - keep format ( Domain:Port ) 
-DOMAIN = "127.0.0.1:7700"
+DOMAIN = "127.0.0.1:8800"
 # There should be a /post-bin in your Root Directory to test POST Requests
 # Provide Paths for CGI Testing:
 CGI_TEST_SCRIPT = "/cgi-bin/test.cgi"

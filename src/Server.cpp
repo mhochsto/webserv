@@ -40,7 +40,6 @@ void Server::CreateServerSocket( t_config& server ){
 		freeaddrinfo(results);
 		throw std::runtime_error(SYS_ERROR("socket"));
 	}
-
 	int on = 1;
 	if (setsockopt(serverSocket.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) == -1) {
 		close(serverSocket.fd);
@@ -68,7 +67,7 @@ void Server::handleDuplicates( void ) {
 		int refPort = it->port;
 		std::string refIP = it->serverIP;
 		for (std::vector<t_config>::iterator iter = m_serverConfig.begin(); iter != m_serverConfig.end(); ++iter){
-			if (iter->port == refPort && refIP == iter->serverIP && it->id != iter->id){
+			if (iter->port == refPort && refIP != iter->serverIP && it->id != iter->id){
 				if (it->id < iter->id){
 					iter->def = false;
 				}
@@ -81,7 +80,6 @@ void Server::handleDuplicates( void ) {
 Server::Server( std::vector<t_config> serverConfig): m_serverConfig(serverConfig){
 
 	handleDuplicates();
-
 
 	for (std::vector<t_config>::iterator it = m_serverConfig.begin(); it != m_serverConfig.end(); ++it){
 		print(Notification, "starting Server: ");
@@ -225,7 +223,6 @@ void Server::run( void ){
 	while (m_stop){
 		if (poll(m_sockets.data(), m_sockets.size(), -42) == -1){
 			if (!m_stop) {
-				std::cout << "Stopping Webserv ... ";
 				break ;
 			}
 			throw std::runtime_error(SYS_ERROR("poll"));
@@ -245,6 +242,7 @@ void Server::run( void ){
 		   }
 		}
 	}
+	print( Notification, "Stopping Webserv ... ");
 }
 
 void Server::addConnection( int serverFD ){
@@ -330,7 +328,10 @@ void Server::sendResponse( t_client& client){
 
 
 	Response response(client);
-	send(client.fd, response.returnResponse(), response.getSize(), 0);
+	if (send(client.fd, response.returnResponse(), response.getSize(), 0) <= 0){
+		removeClient(client);
+		return ;
+	}
 	
 	std::string respStr(response.returnResponse());
 	print(Notification, "Response sent to: " + client.ip);

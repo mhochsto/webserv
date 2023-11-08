@@ -74,12 +74,13 @@ std::string Response::showDir(std::string path){
 	directory = readdir(dir);
 	while ( directory ){
  		if (std::string(directory->d_name) != "." && std::string(directory->d_name) != ".."){
-			file << "			<li><a href ='" <<  std::string(directory->d_name) << "'>" << directory->d_name << "</li>\n";
+			std::string path = m_client.request->getPath().substr(m_client.request->getPath().find(m_client.config.root) + m_client.config.root.length());
+			file << "			<li><a href ='" <<  path + "/" + std::string(directory->d_name) << "'>" <<  directory->d_name << "</li>\n";
 		}
 		directory = readdir(dir);
 	}
-
 	file << "		</dir>\n	</body>\n</html>\n";
+	closedir(dir);
 	return file.str();
 }
 
