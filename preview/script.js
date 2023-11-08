@@ -61,8 +61,7 @@ iframe.addEventListener("load", function() {
             if (event.target.tagName === "A") {
                 event.preventDefault();
                 const originalURL = event.target.getAttribute("href");
-                const modifiedURL = "/post-bin/" + originalURL;
-                iframe.src = modifiedURL;
+                iframe.src = originalURL;
             }
         });
     }
