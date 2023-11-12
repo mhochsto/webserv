@@ -1,12 +1,15 @@
 #include "Request.hpp"
 
-Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false) {
+Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(client), cgi_pollfds(pollfds), cgi_isCgi(false), m_showDir(false), m_isRedirect(false) {
 
-	if (parseHeader()){
+	if (parseHeader() || !m_invalidRequest.empty()){
 		return ;
 	}
 	m_requestBody = client.body;
 	setRedirects();
+	if (m_isRedirect){
+		return ;
+	}
 	setRoot();
 	setPathInfo();
 	setIsCgi();
@@ -15,11 +18,58 @@ Request::Request(t_client& client, std::vector<pollfd>& pollfds): m_client(clien
 		return ;
 	}
 	checkIfDirectoryShouldBeShown();
+	checkBodyLength();
 }
 
 Request::~Request(){}
 
+/* bool for testing */
+bool Request::verifyHostnameAndResetConfig(std::string requestedHostname){
+	t_config *defaultConfig;
+	if (requestedHostname.find_first_of('.') != requestedHostname.find_last_of('.')){
+		requestedHostname.erase(0, requestedHostname.find_first_of('.') + 1);
+	}
+	for (std::vector<t_config>::iterator it = m_client.config.sharedConfig.begin(); it != m_client.config.sharedConfig.end(); ++it){
+		if (it->def){
+			defaultConfig = &*it;
+		}
+		for (std::vector<std::string>::iterator iter = it->serverName.begin(); iter != it->serverName.end(); ++iter){
+			if (*iter == requestedHostname){
+				m_client.config = *it;
+				return true;
+			}
+		}	
+	}
+	if (!m_client.config.def){
+		m_client.config = *defaultConfig;
+		return true;
+	}
+	return false;
+}
+
+bool Request::checkHostname( void ){
+	std::string requestedHostname = m_requestData["Host"];
+	if (requestedHostname.empty()){
+		m_invalidRequest = "400 Bad Request\n";
+		return false;
+	}
+	requestedHostname = requestedHostname.find(":") == std::string::npos ? requestedHostname : requestedHostname.substr(0, requestedHostname.find(":"));
+	
+	verifyHostnameAndResetConfig(requestedHostname);
+	return true;
+}
+
+void Request::checkBodyLength(void){
+	long checkSize = m_client.location.clientMaxBodySize == UNSET ? m_client.config.clientMaxBodySize : m_client.location.clientMaxBodySize;
+	if ((long)m_client.body.size() > checkSize) {
+		m_invalidRequest = "413 Request Entity Too Large.\n";
+	}
+}
+
 void	Request::checkIfDirectoryShouldBeShown( void ) {
+	 if (m_requestType == "POST"){
+	 	return ;
+	}
 	struct stat statbuf;
 	std::memset(&statbuf, 0 , sizeof(struct stat));
 	if (stat(m_requestPath.c_str(), &statbuf) == -1){
@@ -36,7 +86,6 @@ void	Request::checkIfDirectoryShouldBeShown( void ) {
 		else if (!m_client.location.index.empty()){
 			m_requestPath.append("/" + m_client.location.index);
 			checkFilePermissions();
-
 		}
 		else {
 			m_invalidRequest = "403 Forbidden\n";
@@ -50,9 +99,14 @@ void Request::checkFilePermissions(void){
 		if (!m_client.location.cgiScript.empty()){
 			m_requestPath = m_requestPath.at(0) != '.' ? m_client.location.cgiScript : m_client.location.cgiScript;
 		}
-		if (access(m_requestPath.c_str(), X_OK) == -1) {
+		if (access(m_requestPath.c_str(), F_OK) == -1) {
+			m_invalidRequest = "404 File not Found\n";
+		}
+		else if (access(m_requestPath.c_str(), X_OK) == -1) {
 			m_invalidRequest = "403 Forbidden\n";
 		}
+	} else if (m_requestType == "POST"){
+		return ;
 	}
 	else if (access(m_requestPath.c_str(), F_OK) == -1){
 		m_invalidRequest = "404 NotFound\n";
@@ -68,29 +122,48 @@ void Request::setIsCgi(void){
 		return ;
 	}
 	cgi_isCgi = true;
+	if (!std::strncmp(CGI_PATH, m_requestPath.c_str(), std::strlen(CGI_PATH))){
+			cgi_scriptName = m_requestPath.substr(m_requestPath.find(CGI_PATH) + std::strlen(CGI_PATH) + 1);
+			return ;
+	}
+	std::string extension = "."  + m_client.location.path.substr(2);
 	if (m_client.location.cgiScript.empty()){
-		std::string extension = "."  + m_client.location.path.substr(2);
 		cgi_scriptName = m_requestPath.substr(0, m_requestPath.find(extension));
 		cgi_scriptName.erase(0, cgi_scriptName.find_last_of('/') + 1);
 	}
 	else {
 		cgi_scriptName = m_client.location.cgiScript;
 	}
+	validateExtension(extension, m_client.location);
 	if (m_invalidRequest == "405 Method Not Allowed\n") {
 		m_invalidRequest.clear();
 		validateRequestType(m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
+		validateExtension(extension, m_client.config.locations[closestMatchingLocation(m_client.config.locations , m_requestPath.substr(1))]);
 	}
 }
 
+void Request::validateExtension(std::string& extension, t_location& location){
+	for (std::vector<std::string>::iterator it = location.allowedCgiExtensions.begin(); it != location.allowedCgiExtensions.end(); ++it){
+		if (("." + extension) == *it ||   extension == *it){
+			return ;
+		}
+	}
+	m_invalidRequest = "403 Forbidden\n";
+}
+
 void Request::setPathInfo(void){
-	std::string pathInfo = m_requestPath.substr(1);
-	if (pathInfo.find('.') == std::string::npos) {
+	cgi_pathInfo = m_requestPath.substr(1);
+	if (cgi_pathInfo.find('.') == std::string::npos) {
+		cgi_pathInfo.clear();
 		return ;
 	}
-	pathInfo.erase(0, pathInfo.find('.') + 1);
-	if (pathInfo.find('/') != std::string::npos) {
-		cgi_pathInfo = pathInfo.substr(pathInfo.find('/'));
+	cgi_pathInfo.erase(0, cgi_pathInfo.find('.') + 1);
+	if (cgi_pathInfo.find('/') != std::string::npos) {
+		cgi_pathInfo.erase(0, cgi_pathInfo.find('/'));
 		m_requestPath.resize(m_requestPath.find(cgi_pathInfo));
+	}
+	else {
+		cgi_pathInfo.clear();
 	}
 }
 
@@ -115,13 +188,12 @@ void Request::setRoot( void ) {
 	}
 }
 
-/* changes requestPath to the redirection Path; 
-we re-set the location, in case of a different location block for the "new" url */
 void Request::setRedirects( void ){
-	if (m_client.config.redirects.find(m_requestPath) != m_client.config.redirects.end()){
-		m_requestPath = m_client.config.redirects[m_requestPath];
+	if (m_client.config.redirects.find(m_requestPath) == m_client.config.redirects.end()){
+		return ;
 	}
-	m_client.location = m_client.config.locations[getLocationName()];
+	m_requestPath = m_client.config.redirects[m_requestPath];
+	m_isRedirect = true;
 }
 
 void Request::validateRequestType(const t_location& location){
@@ -132,6 +204,13 @@ void Request::validateRequestType(const t_location& location){
 		}
 	}
 	m_invalidRequest = "405 Method Not Allowed\n";
+	const char *allowedRequests[] = ALLOWED_REQUESTS;
+	for (int i = 0; allowedRequests[i]; ++i){
+			if (m_requestType == allowedRequests[i]){
+				return ;
+			}
+	}
+	m_invalidRequest = "501 - Method Not Implemented\n";
 }
 
 int Request::validateAndSetRequestLine( const std::string& line ) {
@@ -166,9 +245,8 @@ int Request::parseHeader(void) {
 	std::stringstream sstreamBuffer(buffer);
 	std::string line;
 	std::getline(sstreamBuffer, line);
-	if (validateAndSetRequestLine(line)){
-		return 1;
-	}
+	
+	std::string requestLine = line;
 	buffer.erase(0, line.length() + 1);
 	while (std::getline(sstreamBuffer, line)){
 		if (line.find_first_of(':') != std::string::npos){
@@ -183,6 +261,12 @@ int Request::parseHeader(void) {
 			return 1;
 		}
 	}
+
+	checkHostname();
+
+	if (validateAndSetRequestLine(requestLine)){
+		return 1;
+	}
 	return 0;
 }
 
@@ -192,7 +276,6 @@ std::string Request::getLocationName( void ) {
 		path.erase(0, path.find_last_of('.'));
 		path.insert(0, "/*");
 		if (m_client.config.locations.find(path) != m_client.config.locations.end()){
-			cgi_isCgi = true;
 			return path;
 		}
 	}
@@ -227,6 +310,8 @@ t_client& Request::getClient( void ){ return m_client;}
 
 void	Request::setPath( std::string newPath ) { m_requestPath = newPath; }
 
+void	Request::setInvalidRequest(std::string invalidRequest) { m_invalidRequest = invalidRequest; }
+
 bool	Request::getIsCgi( void ) {return cgi_isCgi;}
 
-
+bool	Request::getIsRedirect( void ) { return m_isRedirect;}

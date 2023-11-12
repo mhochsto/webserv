@@ -22,28 +22,28 @@ we set REMOTE_HOST to REMOTE_ADDR by default.
 
 Overview of available Variables:
 https://www6.uniovi.es/~antonio/ncsa_httpd/cgi/env.html */
-CgiHandler::CgiHandler( Request& request ) : m_request(request) {
-
+CgiHandler::CgiHandler( t_client& client ) : m_client(client) {
+	client.lastAction = time(NULL);
 	std::stringstream ssport;
 	std::stringstream ssSize;
-	ssport << request.getClient().config.port;
-	ssSize << request.getBody().size();
+	ssport << client.request->getClient().config.port;
+	ssSize << client.request->getBody().size();
 	m_envStr.push_back("SERVER_SOFTWARE=webserv/1.0");
-	m_envStr.push_back("SERVER_NAME=" + request.get("Host"));
+	m_envStr.push_back("SERVER_NAME=" + client.request->get("Host"));
 	m_envStr.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	m_envStr.push_back("SERVER_PROTOCOL=HTTP/1.1");
 	m_envStr.push_back("SERVER_PORT=" + ssport.str());
-	m_envStr.push_back("REQUEST_METHOD=" + request.getType());
-	m_envStr.push_back("PATH_INFO=" + request.getPathInfo());
-	m_envStr.push_back("PATH_TRANSLATED=" + request.getClient().config.root + "/" + request.getPath());
-	m_envStr.push_back("SCRIPT_NAME=" + request.getScriptName());
-	m_envStr.push_back("QUERY_STRING=" + request.getQueryString());
-	m_envStr.push_back("REMOTE_HOST=" + request.getClientIP());
-	m_envStr.push_back("REMOTE_ADDR=" + request.getClientIP());
-	m_envStr.push_back("CONTENT_TYPE=html");
+	m_envStr.push_back("REQUEST_METHOD=" + client.request->getType());
+	m_envStr.push_back("PATH_INFO=" + client.request->getPathInfo());
+	m_envStr.push_back("PATH_TRANSLATED=" + client.request->getPath().substr(1) + client.request->getPathInfo() + (client.request->getQueryString().empty() ? "" : "?" + client.request->getQueryString()));
+	m_envStr.push_back("SCRIPT_NAME=" + client.request->getScriptName());
+	m_envStr.push_back("QUERY_STRING=" + client.request->getQueryString());
+	m_envStr.push_back("REMOTE_HOST=" + client.request->getClientIP());
+	m_envStr.push_back("REMOTE_ADDR=" + client.request->getClientIP());
+	m_envStr.push_back("CONTENT_TYPE=" + client.request->get("Content-Type"));
 	m_envStr.push_back("CONTENT_LENGTH=" + ssSize.str());
-	m_envStr.push_back("HTTP_ACCEPT=" + request.get("Accept"));
-	m_envStr.push_back("HTTP_USER_AGENT=" + request.get("User-Agent"));
+	m_envStr.push_back("HTTP_ACCEPT=" + client.request->get("Accept"));
+	m_envStr.push_back("HTTP_USER_AGENT=" + client.request->get("User-Agent"));
 	for(std::vector<std::string>::iterator it = m_envStr.begin(); it != m_envStr.end(); ++it){
 		m_envCharPtr.push_back((char *)it->c_str());
 	}
@@ -53,66 +53,95 @@ CgiHandler::CgiHandler( Request& request ) : m_request(request) {
 
 std::string CgiHandler::findExecutablePath( std::string path ){
 
-	std::string extension = path.substr(1);
-	extension.erase(0, path.find_last_of('.'));
-	if (extension.find_first_of('/') != extension.find_last_of('/')){
-		extension.erase(extension.find('/'));
+	m_extension = path.substr(1);
+	m_extension.erase(0, path.find_last_of('.'));
+	if (m_extension.find_first_of('/') != m_extension.find_last_of('/')){
+		m_extension.erase(m_extension.find('/'));
 	}
-	if (extension == "js"){
+	if (m_extension == "js"){
 		return "/usr/bin/node";
 	}
-	else if (extension == "py"){
-		path.insert(0, "/usr/bin/python3");
+	else if (m_extension == "py"){
+		return "/usr/bin/python3";
 	}
-	return path;
+	return "";
+}
+
+void CgiHandler::prepSockets(void){
+	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, m_in) == -1){
+		throw std::runtime_error(SYS_ERROR("socketpair"));
+	}
+	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, m_out) == -1){
+		close(m_in[0]);
+		close(m_in[1]);
+		throw std::runtime_error(SYS_ERROR("socketpair"));
+	}
+	m_client.socketVector->push_back((pollfd){m_in[WRITE], POLLIN, 0});
+	m_client.socketVector->push_back((pollfd){m_out[READ], POLLOUT, 0});
 }
 
 void CgiHandler::execute( void ) {
-	std::string executablePath = findExecutablePath(m_request.getPath());
-	char *argv[] = {(char *)executablePath.c_str(), (char *)(m_request.getClient().location.cgiScript.empty() ? m_request.getPath().c_str() : m_request.getClient().location.cgiScript.c_str()) , NULL};
+	std::string executablePath = findExecutablePath(m_client.request->getPath());
+	std::string executable = "." + m_client.request->getPath().substr(m_client.request->getPath().find_last_of('/'));
+	std::string dirPath = m_client.request->getPath().substr(0, m_client.request->getPath().find_last_of('/'));
 	
-	int fd[2];
-	if (m_request.getType() == "POST") {
-		write(fd[0], m_request.getBody().c_str(), m_request.getBody().size());
+	char *argv[3];
+		argv[2] = NULL;
+	if (executablePath.empty()){
+		argv[0] = (char *)executable.c_str();
+		argv[1] = NULL;
 	}
-	if (pipe(fd)){
-		throw std::runtime_error(SYS_ERROR("pipe"));
+	else {
+		argv[0] = (char *)executablePath.c_str();
+		argv[1] = (char *)executable.c_str();
 	}
-	pid_t pid = fork();
-	if (pid ==  -1) {
+	
+	prepSockets();
+	m_client.CgiPid = fork();
+	if (m_client.CgiPid ==  -1) {
 		throw std::runtime_error(SYS_ERROR("fork"));
 	}
-	if (pid == 0) {
-
-		dup2(fd[0], STDIN_FILENO);
-		dup2(fd[1], STDOUT_FILENO);
-		close(fd[0]);
-		close(fd[1]);
-		closePollfds(m_request.getPollfds());
+	if (m_client.CgiPid == 0) {
+		chdir(dirPath.c_str());
+		signal(SIGINT, SIG_DFL);
+		if (dup2(m_in[READ], STDIN_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
+		if (dup2(m_out[WRITE], STDOUT_FILENO) == -1) throw std::runtime_error(SYS_ERROR("dup2"));
+		close(m_in[READ]);
+		close(m_out[WRITE]);
+		closePollfds(m_client.request->getPollfds());
 		if (execve(argv[0], argv , m_envCharPtr.data()) == -1){
-			perror("execve");
+			exit(1);
 		}
 	}
-	close(fd[1]);
+	close(m_in[READ]);
+	close(m_out[WRITE]);
 
-	char buf[1024];
-	int rd = 1;
-	while (rd) {
-		std::memset(buf, 0, sizeof(buf));
-		rd = read(fd[0], buf, sizeof(buf));
-		if (rd <= 0){
-			break ;
-		}
-		m_output += buf;
-	}
-	close(fd[0]);
-	waitpid(pid, NULL, 0);
-
-	remove(".tempfile0");
-	remove(".tempfile1");
 }
 
-std::string CgiHandler::getOutput( void ) {return m_output;}
+bool CgiHandler::isPipeFd(int fd){
+	if (m_in[READ] == fd){
+		return true;
+	}
+	if (m_in[WRITE] == fd){
+		return true;
+	}
+	if (m_out[READ] == fd){
+		return true;
+	}
+	if (m_out[WRITE] == fd){
+		return true;
+	}
+	return false;
+}
 
+
+void CgiHandler::CgiSocketsToRemove( int *in, int *out ){
+	*in = m_in[WRITE];
+	*out = m_out[READ];
+}
+
+std::string& CgiHandler::getOutput( void ) {return m_output;}
+
+const std::string& CgiHandler::getExtension( void ) { return m_extension;}
 
 

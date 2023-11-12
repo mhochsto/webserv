@@ -58,13 +58,13 @@ std::string getFirstWord(std::string& str) {
 
 std::string convertIPtoString(unsigned long ip){
     std::stringstream sstream;
-	sstream << (int)((ip >> 24) & 0xFF);
-	sstream << ".";
-    sstream << (int)((ip >> 16) & 0xFF);
+	sstream << (int)( ip & 0xFF);
 	sstream << ".";
     sstream << (int)((ip >> 8) & 0xFF);
 	sstream << ".";
-    sstream << (int)(ip & 0xFF);
+    sstream << (int)((ip >> 16) & 0xFF);
+	sstream << ".";
+    sstream << (int)((ip >> 24) & 0xFF);
 	return sstream.str();
 }
 /* wip */

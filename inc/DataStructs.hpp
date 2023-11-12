@@ -9,6 +9,9 @@
 
 # include <poll.h>
 
+class Request;
+class CgiHandler;
+
 typedef struct s_location {
 	s_location() {
 		autoIndex = false;
@@ -32,40 +35,56 @@ typedef std::map<std::string, std::string> stringMap;
 typedef struct s_config {
 	/* alles mit initialiser list ?*/
     s_config() : fd(UNSET) {
+		def = true;
 		port = SERVER_LISTEN;
 		clientMaxBodySize = SERVER_CLIENT_MAX_BODY_SIZE;
 		root = SERVER_ROOT;
-		serverName = SERVER_LOCALHOST;
+		serverName.push_back(SERVER_LOCALHOST);
+		serverIP = SERVER_LOCALHOST;
 		errorPages["400"] = SERVER_ERROR_PAGE_400;
+		errorPages["403"] = SERVER_ERROR_PAGE_403;
 		errorPages["404"] = SERVER_ERROR_PAGE_404;
 		errorPages["405"] = SERVER_ERROR_PAGE_405;
+		errorPages["408"] = SERVER_ERROR_PAGE_408;
+		errorPages["409"] = SERVER_ERROR_PAGE_409;
+		errorPages["413"] = SERVER_ERROR_PAGE_413;
 		errorPages["500"] = SERVER_ERROR_PAGE_500;
+		errorPages["501"] = SERVER_ERROR_PAGE_501;
 		errorPages["502"] = SERVER_ERROR_PAGE_502;
 		errorPages["503"] = SERVER_ERROR_PAGE_503;
 		errorPages["505"] = SERVER_ERROR_PAGE_505;
 		locations["/"];
-    }
+	}
+	int									id;
     int                                 fd;
+	bool								def;
 	ssize_t								port;
 	ssize_t								clientMaxBodySize;
 	std::string							root;
 	std::string							index;
-	std::string							serverName;
+	std::vector<std::string>			serverName;
+	std::string							serverIP;
     stringMap							redirects;
     stringMap							errorPages;
     locationMap							locations;
+	std::vector<struct s_config>				sharedConfig;
 } t_config;
 
+
 enum RecieveState { header, body, chunk, done};
-#include <iostream>
 typedef struct s_client {
 
 	s_client(){
 		fd = 0;
 		serverFD = 0;
-		chunkSizeLong = 0;
-
+		chunkSizeLong = UNSET;
+		request = NULL;
+		cgi = NULL;
+		activeCGI = false;
 	}
+
+	bool					activeCGI;
+	int						CgiPid;
 	int 					fd;
 	int 					serverFD;
 	long 					chunkSizeLong;
@@ -75,10 +94,12 @@ typedef struct s_client {
 	std::string 			body;
 	std::string 			chunk;
 	RecieveState			recieving;
-	std::vector<pollfd> 	socketVector;
+	std::vector<pollfd> 	*socketVector;
 	t_config 				config;
 	t_location				location;
-
+	Request 				*request;
+	CgiHandler				*cgi;
+	time_t					lastAction;
 } t_client;
 
 

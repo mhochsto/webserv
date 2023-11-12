@@ -41,7 +41,9 @@ class Request {
 		t_client& 			getClient(void);
 		bool				getIsCgi( void );
 		bool				getShowDir( void );
+		bool				getIsRedirect( void );
 		void		setPath( std::string newPath );
+		void		setInvalidRequest(std::string invalidRequest);
 	private:
 		t_client&					m_client;
 		std::string	     			m_requestType;
@@ -55,6 +57,7 @@ class Request {
 		std::vector<pollfd>&		cgi_pollfds;
 		bool						cgi_isCgi;
 		bool						m_showDir;
+		bool						m_isRedirect;
 		std::map<std::string, std::string> m_requestData;
 
 		int 		validateAndSetRequestLine( const std::string& line );
@@ -68,8 +71,10 @@ class Request {
 		void		checkFilePermissions(void);
 		void		checkIfDirectoryShouldBeShown( void );
 		void 		validateRequestType(const t_location& location);
-
-
+		void		checkBodyLength(void);
+		void		validateExtension(std::string& extension, t_location& location);
+		bool		checkHostname( void );
+		bool		verifyHostnameAndResetConfig(std::string requestedHostname);
 };
 
 std::ostream    &operator<<(std::ostream &os, const Request &rhs);

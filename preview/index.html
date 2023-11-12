@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <h1>Testing Web Server Requests</h1>
+    <h2>GET Request</h2>
+    <form id ="getForm">
+        <label> Request File: </label>
+        <input type="text" id="get_filename">
+        <button id="getButton">Send GET Request</button>
+        <p id="getResponse"></p>
+    </form>
+    
+    <h2>DELETE Request</h2>
+    <form id="deleteForm">
+        <label for="deleteData">Data to delete:</label>
+        <input type="text", id="delete_filename">
+        <button id="deleteButton">Send DELETE Request</button>
+    </form>
+    <p id="deleteResponse"></p>
+
+    <h2>POST Request</h2>
+    <form id="postForm">
+        <label for="postData">Data to Send [filename][body]:</label>
+        <input type="text" id="post_filename" name="post_filename">
+        <input type="text" id="postData" name ="postData" >
+        <button type="submit">Send POST Request</button>
+    </form>
+    <p id="postResponse"></p>
+
+    <h2>Directory Listing Preview</h2>
+    <iframe id="directoryListing" src="/post-bin" width="500" height="500"></iframe>
+
+    <script src="script.js"></script>
+</body>
+</html>
