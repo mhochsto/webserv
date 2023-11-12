@@ -54,6 +54,7 @@ bool Request::checkHostname( void ){
 		return false;
 	}
 	requestedHostname = requestedHostname.find(":") == std::string::npos ? requestedHostname : requestedHostname.substr(0, requestedHostname.find(":"));
+	
 	verifyHostnameAndResetConfig(requestedHostname);
 	return true;
 }

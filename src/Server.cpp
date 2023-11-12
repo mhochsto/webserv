@@ -12,6 +12,11 @@
 
 
 void Server::CreateServerSocket( t_config& server ){
+
+	if (std::find(m_blockedPorts.begin(), m_blockedPorts.end(), server.port) != m_blockedPorts.end()){
+		throw std::runtime_error("Server::Port already in use");
+	}
+
 	pollfd	serverSocket;
 	struct addrinfo hints;
 	struct addrinfo *results;
@@ -57,6 +62,7 @@ void Server::CreateServerSocket( t_config& server ){
 		close(serverSocket.fd);
 		throw std::runtime_error(SYS_ERROR("listen"));
 	}
+	m_blockedPorts.push_back(server.port);
 	m_sockets.push_back(serverSocket);
 	server.fd = serverSocket.fd;
 }
@@ -67,12 +73,12 @@ void Server::handleDuplicates( void ) {
 		int refPort = it->port;
 		std::string refIP = it->serverIP;
 		for (std::vector<t_config>::iterator iter = m_serverConfig.begin(); iter != m_serverConfig.end(); ++iter){
-			if (iter->port == refPort && refIP != iter->serverIP && it->id != iter->id){
+			if (iter->port == refPort && refIP == iter->serverIP && it->id != iter->id){
 				if (it->id < iter->id){
 					iter->def = false;
 				}
 				it->sharedConfig.push_back(*iter);
-			}	
+			}
 		}
 	}
 }
@@ -242,7 +248,7 @@ void Server::run( void ){
 		   }
 		}
 	}
-	print( Notification, "Stopping Webserv ... ");
+	print( Notification, "Stopping Webserv ... \n");
 }
 
 void Server::addConnection( int serverFD ){
@@ -313,7 +319,7 @@ void Server::removeClient( t_client& client ){
 ssize_t Server::recvFromClient(std::string&data, t_client& client){
 	char c_buffer[HTTP_HEADER_LIMIT];
 	std::memset(c_buffer, 0, sizeof(c_buffer));
-	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer), 0);
+	ssize_t readBytes = recv(client.fd, c_buffer, sizeof(c_buffer) - 1, 0);
 	if (readBytes <= 0){
 		removeClient(client);
 		return 0;

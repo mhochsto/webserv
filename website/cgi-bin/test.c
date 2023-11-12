@@ -6,7 +6,7 @@ int main(int argc, char **argv, char **env){
     char buf[3000];
     getcwd(buf);
 
-      printf("Content-type: text/html\r\n\r\n");
+ //     printf("Content-type: text/html\r\n\r\n");
       printf("<!doctype html>");
      printf("<html>");
      printf("  <head>");

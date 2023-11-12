@@ -114,12 +114,24 @@ std::string Response::FileType( void ) {
 	return "text/html";
 }
 
+const std::string& Response::getServerName( void ){
+	std::string requestedHost = m_client.request->get("Host");
+	requestedHost = requestedHost.find(':') == std::string::npos ? requestedHost : requestedHost.substr(0, requestedHost.find(":"));
+	for(std::vector<std::string>::iterator it = m_client.config.serverName.begin(); it != m_client.config.serverName.end(); ++it){
+		if (requestedHost == *it){
+			return *it;
+		}
+	}
+	return *m_client.config.serverName.begin();
+}
+
 void Response::createResponse(std::string rspType, std::string file){
 	std::stringstream response;
 	std::stringstream body(file);
 	response << "HTTP/1.1 " << rspType;
 	response << timestamp();
-	response << "Server: webserv\nContent-Length: ";
+	response << "Server: " << getServerName() << "\n";
+	response << "Content-Length: ";
 	response << body.str().length();
 	response << "\nConnection: keep-alive\n";
 	response << "Content-Type: " << FileType() << "\r\n\r\n";
